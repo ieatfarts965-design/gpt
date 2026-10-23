@@ -32,8 +32,10 @@ jobs:
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
         with:
-          name: storage-esp-fabric
+          name: silo-client-fabric
           path: |
             build/libs/*.jar
             !build/libs/*-sources.jar
           if-no-files-found: error
+
+
