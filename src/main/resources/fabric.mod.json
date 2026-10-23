@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "silo_client",
+  "id": "vanta_client",
   "version": "${version}",
-  "name": "Silo Client",
+  "name": "Vanta Client",
   "description": "Fabric client with a Vape-inspired module menu and storage discovery tools.",
   "environment": "client",
   "entrypoints": {
-    "client": ["com.example.storageesp.StorageEspClient"]
+    "client": ["com.vanta.client.VantaClient"]
   },
   "depends": {
     "fabricloader": ">=0.16.5",
@@ -15,4 +15,5 @@
     "fabric-api": "*"
   }
 }
+
 
