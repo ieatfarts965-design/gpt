@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 8815)
+Total output lines: 734
+
 package com.vanta.client;
 
 import net.minecraft.client.gui.DrawContext;
@@ -213,11 +216,18 @@ public final class VantaScreen extends Screen {
         if (runtimeDescription != null) {
             draw(c, "VANTA MODULE", x + 14, contentY + 119, MUTED);
             draw(c, "Runs in your local client while enabled.", x + 14, contentY + 141, TEXT);
-            draw(c, "No anti-cheat evasion or concealment is used.", x + 14, contentY + 158, MUTED);
+            draw(c, "Uses normal client controls and loaded game state.", x + 14, contentY + 158, MUTED);
         } else {
             draw(c, "MODULE PROFILE", x + 14, contentY + 119, MUTED);
             draw(c, "Catalogue entry only", x + 14, contentY + 141, TEXT);
             draw(c, "This switch saves a profile value; it does not run game behavior.", x + 14, contentY + 158, MUTED);
+        }
+        if (selectedModule == Module.AUTO_EAT) {
+            drawSlider(c, x, contentY + 205, w, "Start eating at", config.autoEatThreshold,
+                    config.autoEatThreshold + " hunger", (config.autoEatThreshold - 1) / 18.0,
+                    "autoEat", -1, -1);
+            draw(c, "Uses food from your hotbar and restores your selected slot afterward.",
+                    x, contentY + 270, MUTED);
         }
     }
 
@@ -228,6 +238,10 @@ public final class VantaScreen extends Screen {
             case HUD -> "Show Vanta, coordinates, and FPS in the corner of the screen.";
             case PLAYER_ESP -> "Draw visible client-side boxes around other loaded players.";
             case MOB_ESP -> "Draw visible client-side boxes around nearby loaded mobs.";
+            case AUTO_EAT -> "Use the best food in your hotbar when hunger reaches your threshold.";
+            case AUTO_TOOL -> "Choose the fastest hotbar tool while mining, then restore your prior slot.";
+            case WEATHER_NOTIFIER -> "Notify when local weather starts, changes, or clears.";
+            case BLOCK_ENTITY_DEBUG -> "Show loaded storage and flagged-chunk counts on the HUD.";
             default -> null;
         };
     }
@@ -275,70 +289,12 @@ public final class VantaScreen extends Screen {
     private void drawStorageChips(DrawContext c, int x, int y, int w, int mx, int my) {
         String[] names = {"Chest", "Trapped", "Ender", "Barrel", "Shulker"};
         boolean[] values = {config.chests, config.trappedChests, config.enderChests, config.barrels, config.shulkerBoxes};
-        int gap = 5;
-        int chipW = (w - gap * 4) / 5;
-        for (int i = 0; i < names.length; i++) {
-            int bx = x + i * (chipW + gap);
-            boolean hover = inside(mx, my, bx, y, chipW, 28);
-            c.fill(bx, y, bx + chipW, y + 28, values[i] ? 0xFF23514E : hover ? PANEL_HOVER : PANEL);
-            centered(c, names[i], bx + chipW / 2, y + 9, values[i] ? ACCENT : MUTED);
-        }
-    }
-
-    private void drawInput(DrawContext c, int x, int y, int w, String label, String value, String id,
-                           int mx, int my) {
-        draw(c, label, x, y, MUTED);
-        int fy = y + 17;
-        boolean focused = focusedField.equals(id);
-        boolean hover = inside(mx, my, x, fy, w, 29);
-        c.fill(x, fy, x + w, fy + 29, focused ? 0xFF202A34 : hover ? PANEL_HOVER : PANEL);
-        c.fill(x, fy, x + w, fy + 1, focused ? ACCENT : BORDER);
-        String display = value == null ? "" : value;
-        int maxWidth = w - 22;
-        while (!display.isEmpty() && textRenderer.getWidth(display) > maxWidth) {
-            display = display.substring(1);
-        }
-        draw(c, display, x + 9, fy + 10, TEXT);
-        if (focused && (System.currentTimeMillis() / 500) % 2 == 0) {
-            int cursor = x + 9 + textRenderer.getWidth(display);
-            c.fill(cursor, fy + 8, cursor + 1, fy + 21, ACCENT);
-        }
-    }
-
-    private void drawText(DrawContext c, String value, int x, int y, int color) {
-        draw(c, value, x, y, color);
-    }
-
-    private void draw(DrawContext c, String value, int x, int y, int color) {
-        c.drawText(textRenderer, Text.literal(value), x, y, color, false);
-    }
-
-    private void centered(DrawContext c, String value, int centerX, int y, int color) {
-        c.drawText(textRenderer, Text.literal(value), centerX - textRenderer.getWidth(value) / 2, y, color, false);
-    }
-
-    private boolean inside(double mx, double my, int x, int y, int w, int h) {
-        return mx >= x && mx < x + w && my >= y && my < y + h;
-    }
-
-    private String moduleSummary(Module module) {
-        return switch (module) {
-            case STORAGE_ESP -> "Block highlights and range controls";
-            case SUSPICIOUS_ESP -> "Highlights storage in flagged chunks";
-            case SUS_CHUNK_FINDER -> "Storage-count threshold scanner";
-            case DONUT_CHUNK_FINDER -> "Alerts on newly loaded chunks";
-            case RELOG_REMINDER -> "One relog prompt, followed by a single empty result";
-            default -> "Module configuration";
-        };
-    }
-
-    private String moduleDescription(Module module) {
-        return switch (module) {
-            case STORAGE_ESP -> "Choose targets, style, and render range.";
-            case SUSPICIOUS_ESP -> "Mark storage blocks in chunks above your threshold.";
-            case SUS_CHUNK_FINDER -> "Count loaded storage block entities across full world height.";
-            case DONUT_CHUNK_FINDER -> "Track when new nearby chunks arrive from the server.";
+        …815 tokens truncated… chunks arrive from the server.";
             case RELOG_REMINDER -> "At Y -20, check the current loaded chunk and guide a single relog retry.";
+            case AUTO_EAT -> "Eat hotbar food at the configured hunger threshold.";
+            case AUTO_TOOL -> "Select the quickest hotbar tool while the attack key is held on a block.";
+            case WEATHER_NOTIFIER -> "Report weather transitions in the current world.";
+            case BLOCK_ENTITY_DEBUG -> "Display the latest loaded-storage scan counts.";
             default -> "Configure this module.";
         };
     }
@@ -461,6 +417,14 @@ public final class VantaScreen extends Screen {
                 if (inside(mx, my, x, y + 40, w, 48)) config.relogReminder = !config.relogReminder;
                 else if (inside(mx, my, x, y + 125, w, 29)) focusedField = "relog";
             }
+            case AUTO_EAT -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 205, w, 54)) {
+                    activeSlider = "autoEat";
+                    updateSlider(mx);
+                }
+            }
             default -> config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
         }
         config.sanitize();
@@ -475,6 +439,7 @@ public final class VantaScreen extends Screen {
         switch (activeSlider) {
             case "range" -> config.range = 8 + (int) Math.round(progress * 120);
             case "threshold" -> config.containersPerChunk = 2 + (int) Math.round(progress * 62);
+            case "autoEat" -> config.autoEatThreshold = 1 + (int) Math.round(progress * 18);
         }
         config.sanitize();
     }
