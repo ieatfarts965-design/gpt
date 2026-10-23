@@ -22,6 +22,7 @@ import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
@@ -65,6 +66,7 @@ public final class VantaClient implements ClientModInitializer {
     private static boolean previousRaining;
     private static boolean previousThundering;
     private static boolean weatherInitialized;
+    private static int autoClickTicks;
 
     @Override
     public void onInitializeClient() {
@@ -215,12 +217,38 @@ public final class VantaClient implements ClientModInitializer {
         if (client.player == null || client.world == null) {
             stopAutoEat(client);
             stopAutoTool(client);
+            autoClickTicks = 0;
             weatherInitialized = false;
             return;
         }
         tickAutoEat(client);
         tickAutoTool(client);
+        tickCombatAutomation(client);
         tickWeatherNotifier(client);
+    }
+
+    private static void tickCombatAutomation(MinecraftClient client) {
+        boolean click = false;
+        boolean attacking = moduleEnabled("AUTO_CLICKER") && client.currentScreen == null
+                && client.options.attackKey.isPressed();
+        if (attacking) {
+            autoClickTicks++;
+            int interval = Math.max(1, 20 / CONFIG.autoClickCps);
+            if (autoClickTicks >= interval) {
+                autoClickTicks = 0;
+                click = client.player.getAttackCooldownProgress(0.5f) >= 0.99f;
+            }
+        } else {
+            autoClickTicks = 0;
+        }
+
+        if (moduleEnabled("TRIGGER_BOT") && client.currentScreen == null
+                && client.targetedEntity instanceof LivingEntity target && target.isAlive()
+                && client.player.squaredDistanceTo(target) <= 9.0
+                && client.player.getAttackCooldownProgress(0.5f) >= 0.99f) {
+            click = true;
+        }
+        if (click) KeyBinding.onKeyPressed(client.options.attackKey.getBoundKey());
     }
 
     private static void tickAutoEat(MinecraftClient client) {
