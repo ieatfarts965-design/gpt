@@ -12,7 +12,10 @@ import net.minecraft.block.ChestBlock;
 import net.minecraft.block.EnderChestBlock;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.block.TrappedChestBlock;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.FoodComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.VertexConsumer;
@@ -24,6 +27,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.world.chunk.WorldChunk;
 import org.lwjgl.glfw.GLFW;
 
@@ -52,6 +56,15 @@ public final class VantaClient implements ClientModInitializer {
     private static int worldReadyTicks;
     private static boolean fullbrightApplied;
     private static double previousGamma = 1.0;
+    private static int autoEatOriginalSlot = -1;
+    private static int autoEatSelectedSlot = -1;
+    private static boolean autoEatActive;
+    private static int autoToolOriginalSlot = -1;
+    private static int autoToolSelectedSlot = -1;
+    private static boolean autoToolActive;
+    private static boolean previousRaining;
+    private static boolean previousThundering;
+    private static boolean weatherInitialized;
 
     @Override
     public void onInitializeClient() {
@@ -73,6 +86,7 @@ public final class VantaClient implements ClientModInitializer {
             }
 
             applyClientModules(client);
+            applyUtilityModules(client);
 
             if (client.world == null || client.player == null) {
                 suspectChunks = List.of();
@@ -164,11 +178,18 @@ public final class VantaClient implements ClientModInitializer {
 
         HudRenderCallback.EVENT.register((context, tickCounter) -> {
             MinecraftClient client = MinecraftClient.getInstance();
-            if (!moduleEnabled("HUD") || client.player == null || client.world == null) return;
-            var pos = client.player.getBlockPos();
-            String info = String.format("VANTA  XYZ %d %d %d  FPS %d",
-                    pos.getX(), pos.getY(), pos.getZ(), client.getCurrentFps());
-            context.drawText(client.textRenderer, Text.literal(info), 8, 8, 0xFFE8E2FF, true);
+            if (client.player == null || client.world == null) return;
+            if (moduleEnabled("HUD")) {
+                var pos = client.player.getBlockPos();
+                String info = String.format("VANTA  XYZ %d %d %d  FPS %d",
+                        pos.getX(), pos.getY(), pos.getZ(), client.getCurrentFps());
+                context.drawText(client.textRenderer, Text.literal(info), 8, 8, 0xFFE8E2FF, true);
+            }
+            if (moduleEnabled("BLOCK_ENTITY_DEBUG")) {
+                String info = "VANTA DEBUG  loaded storage " + storagePositions.size()
+                        + "  flagged chunks " + suspectChunks.size();
+                context.drawText(client.textRenderer, Text.literal(info), 8, 22, 0xFFBBA8FF, true);
+            }
         });
     }
 
@@ -188,6 +209,131 @@ public final class VantaClient implements ClientModInitializer {
         if (client.player != null && moduleEnabled("SPRINT")) {
             client.player.setSprinting(true);
         }
+    }
+
+    private static void applyUtilityModules(MinecraftClient client) {
+        if (client.player == null || client.world == null) {
+            stopAutoEat(client);
+            stopAutoTool(client);
+            weatherInitialized = false;
+            return;
+        }
+        tickAutoEat(client);
+        tickAutoTool(client);
+        tickWeatherNotifier(client);
+    }
+
+    private static void tickAutoEat(MinecraftClient client) {
+        if (!moduleEnabled("AUTO_EAT") || client.currentScreen != null) {
+            stopAutoEat(client);
+            return;
+        }
+
+        var player = client.player;
+        if (player.isUsingItem() && !autoEatActive) return;
+        if (player.getHungerManager().getFoodLevel() > CONFIG.autoEatThreshold) {
+            stopAutoEat(client);
+            return;
+        }
+
+        int bestSlot = -1;
+        double bestScore = -1.0;
+        for (int slot = 0; slot < 9; slot++) {
+            FoodComponent food = player.getInventory().getStack(slot).get(DataComponentTypes.FOOD);
+            if (food == null) continue;
+            double score = food.nutrition() + food.saturation() * 2.0;
+            if (score > bestScore) {
+                bestScore = score;
+                bestSlot = slot;
+            }
+        }
+        if (bestSlot < 0) {
+            stopAutoEat(client);
+            return;
+        }
+
+        if (!autoEatActive) {
+            autoEatOriginalSlot = player.getInventory().selectedSlot;
+            autoEatActive = true;
+        }
+        autoEatSelectedSlot = bestSlot;
+        player.getInventory().selectedSlot = bestSlot;
+        client.options.useKey.setPressed(true);
+    }
+
+    private static void stopAutoEat(MinecraftClient client) {
+        if (!autoEatActive) return;
+        client.options.useKey.setPressed(false);
+        if (client.player != null && client.player.getInventory().selectedSlot == autoEatSelectedSlot) {
+            client.player.getInventory().selectedSlot = autoEatOriginalSlot;
+        }
+        autoEatOriginalSlot = -1;
+        autoEatSelectedSlot = -1;
+        autoEatActive = false;
+    }
+
+    private static void tickAutoTool(MinecraftClient client) {
+        if (!moduleEnabled("AUTO_TOOL") || client.currentScreen != null
+                || !client.options.attackKey.isPressed()
+                || !(client.crosshairTarget instanceof BlockHitResult hit)) {
+            stopAutoTool(client);
+            return;
+        }
+
+        BlockState state = client.world.getBlockState(hit.getBlockPos());
+        if (state.isAir()) {
+            stopAutoTool(client);
+            return;
+        }
+        var inventory = client.player.getInventory();
+        int bestSlot = inventory.selectedSlot;
+        float bestSpeed = inventory.getStack(bestSlot).getMiningSpeedMultiplier(state);
+        for (int slot = 0; slot < 9; slot++) {
+            float speed = inventory.getStack(slot).getMiningSpeedMultiplier(state);
+            if (speed > bestSpeed) {
+                bestSpeed = speed;
+                bestSlot = slot;
+            }
+        }
+        if (!autoToolActive && bestSlot != inventory.selectedSlot) {
+            autoToolOriginalSlot = inventory.selectedSlot;
+            autoToolActive = true;
+        }
+        if (autoToolActive) {
+            autoToolSelectedSlot = bestSlot;
+            inventory.selectedSlot = bestSlot;
+        }
+    }
+
+    private static void stopAutoTool(MinecraftClient client) {
+        if (!autoToolActive) return;
+        if (client.player != null && client.player.getInventory().selectedSlot == autoToolSelectedSlot) {
+            client.player.getInventory().selectedSlot = autoToolOriginalSlot;
+        }
+        autoToolOriginalSlot = -1;
+        autoToolSelectedSlot = -1;
+        autoToolActive = false;
+    }
+
+    private static void tickWeatherNotifier(MinecraftClient client) {
+        if (!moduleEnabled("WEATHER_NOTIFIER")) {
+            weatherInitialized = false;
+            return;
+        }
+        boolean raining = client.world.isRaining();
+        boolean thundering = client.world.isThundering();
+        if (!weatherInitialized) {
+            previousRaining = raining;
+            previousThundering = thundering;
+            weatherInitialized = true;
+            return;
+        }
+        if (raining == previousRaining && thundering == previousThundering) return;
+        String message = thundering ? "Weather: thunderstorm started."
+                : raining ? "Weather: rain started." : "Weather cleared.";
+        client.player.sendMessage(Text.literal(message), false);
+        previousRaining = raining;
+        previousThundering = thundering;
     }
 
     private static boolean moduleEnabled(String moduleName) {
