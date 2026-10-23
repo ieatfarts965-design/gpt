@@ -231,6 +231,12 @@ public final class VantaScreen extends Screen {
                     "autoClick", -1, -1);
             draw(c, "Only runs while you hold attack and respects the vanilla attack cooldown.",
                     x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.LIGHT_FINDER) {
+            drawSlider(c, x, contentY + 205, w, "Maximum light level", config.lightThreshold,
+                    Integer.toString(config.lightThreshold), config.lightThreshold / 15.0,
+                    "light", -1, -1);
+            draw(c, "Marks dark air blocks in the nearby area, up to 512 markers.",
+                    x, contentY + 270, MUTED);
         }
     }
 
@@ -252,6 +258,8 @@ public final class VantaScreen extends Screen {
             case SPAWNER_PROTECT -> "Outline loaded spawners and alert once when each is first found.";
             case TARGET_HUD -> "Show the crosshair target's name and health bar.";
             case NETHERITE_FINDER -> "Outline ancient debris in loaded chunks between Y 8 and 23.";
+            case HOLE_ESP -> "Outline nearby two-block-high cavities with solid floors and walls.";
+            case LIGHT_FINDER -> "Mark nearby air blocks at or below a configurable light level.";
             default -> null;
         };
     }
@@ -363,6 +371,8 @@ public final class VantaScreen extends Screen {
             case SPAWNER_PROTECT -> "Highlight and report loaded spawners";
             case TARGET_HUD -> "Target name and health display";
             case NETHERITE_FINDER -> "Loaded ancient-debris scan";
+            case HOLE_ESP -> "Nearby enclosed two-block cavities";
+            case LIGHT_FINDER -> "Nearby dark air blocks";
             default -> "Module configuration";
         };
     }
@@ -385,6 +395,8 @@ public final class VantaScreen extends Screen {
             case SPAWNER_PROTECT -> "Highlight nearby loaded mob spawners and report newly found positions once.";
             case TARGET_HUD -> "Show the name and health of the living entity under your crosshair.";
             case NETHERITE_FINDER -> "Scan loaded chunk blocks from Y 8 through 23 for ancient debris.";
+            case HOLE_ESP -> "Find enclosed, two-block-high holes within 20 blocks of your position.";
+            case LIGHT_FINDER -> "Mark low-light air blocks around your current height.";
             default -> "Configure this module.";
         };
     }
@@ -523,6 +535,14 @@ public final class VantaScreen extends Screen {
                     updateSlider(mx);
                 }
             }
+            case LIGHT_FINDER -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 205, w, 54)) {
+                    activeSlider = "light";
+                    updateSlider(mx);
+                }
+            }
             default -> config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
         }
         config.sanitize();
@@ -539,6 +559,7 @@ public final class VantaScreen extends Screen {
             case "threshold" -> config.containersPerChunk = 2 + (int) Math.round(progress * 62);
             case "autoEat" -> config.autoEatThreshold = 1 + (int) Math.round(progress * 18);
             case "autoClick" -> config.autoClickCps = 1 + (int) Math.round(progress * 19);
+            case "light" -> config.lightThreshold = (int) Math.round(progress * 15);
         }
         config.sanitize();
     }
