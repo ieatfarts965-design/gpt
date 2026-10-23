@@ -205,12 +205,31 @@ public final class VantaScreen extends Screen {
     }
 
     private void drawCatalogSettings(DrawContext c, int x, int w) {
+        String runtimeDescription = runtimeModuleDescription(selectedModule);
         drawToggle(c, x, contentY + 40, w, selectedModule.label,
-                "Module state saved in your local Vanta profile", catalogEnabled(selectedModule), -1, -1);
+                runtimeDescription == null ? "Catalogue switch saved in your local Vanta profile" : runtimeDescription,
+                catalogEnabled(selectedModule), -1, -1);
         c.fill(x, contentY + 105, x + w, contentY + 180, PANEL);
-        draw(c, "MODULE PROFILE", x + 14, contentY + 119, MUTED);
-        draw(c, "Catalogue entry only", x + 14, contentY + 141, TEXT);
-        draw(c, "This switch saves a profile value; it does not run game behavior.", x + 14, contentY + 158, MUTED);
+        if (runtimeDescription != null) {
+            draw(c, "VANTA MODULE", x + 14, contentY + 119, MUTED);
+            draw(c, "Runs in your local client while enabled.", x + 14, contentY + 141, TEXT);
+            draw(c, "No anti-cheat evasion or concealment is used.", x + 14, contentY + 158, MUTED);
+        } else {
+            draw(c, "MODULE PROFILE", x + 14, contentY + 119, MUTED);
+            draw(c, "Catalogue entry only", x + 14, contentY + 141, TEXT);
+            draw(c, "This switch saves a profile value; it does not run game behavior.", x + 14, contentY + 158, MUTED);
+        }
+    }
+
+    private String runtimeModuleDescription(Module module) {
+        return switch (module) {
+            case FULLBRIGHT -> "Raise client brightness while enabled; restore your prior setting when off.";
+            case SPRINT -> "Request sprint while enabled; normal Minecraft movement limits still apply.";
+            case HUD -> "Show Vanta, coordinates, and FPS in the corner of the screen.";
+            case PLAYER_ESP -> "Draw visible client-side boxes around other loaded players.";
+            case MOB_ESP -> "Draw visible client-side boxes around nearby loaded mobs.";
+            default -> null;
+        };
     }
 
     private void drawToggle(DrawContext c, int x, int y, int w, String title, String subtitle, boolean enabled,
