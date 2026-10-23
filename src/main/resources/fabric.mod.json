@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "storageesp",
+  "version": "${version}",
+  "name": "Storage ESP",
+  "description": "Highlights loaded storage blocks and flags chunks with configurable container counts.",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.example.storageesp.StorageEspClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.5",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
+
