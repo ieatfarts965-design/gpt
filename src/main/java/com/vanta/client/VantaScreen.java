@@ -225,6 +225,12 @@ public final class VantaScreen extends Screen {
                     "autoEat", -1, -1);
             draw(c, "Uses food from your hotbar and restores your selected slot afterward.",
                     x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.AUTO_CLICKER) {
+            drawSlider(c, x, contentY + 205, w, "Click rate", config.autoClickCps,
+                    config.autoClickCps + " CPS", (config.autoClickCps - 1) / 19.0,
+                    "autoClick", -1, -1);
+            draw(c, "Only runs while you hold attack and respects the vanilla attack cooldown.",
+                    x, contentY + 270, MUTED);
         }
     }
 
@@ -239,6 +245,8 @@ public final class VantaScreen extends Screen {
             case AUTO_TOOL -> "Choose the fastest hotbar tool while mining, then restore your prior slot.";
             case WEATHER_NOTIFIER -> "Notify when local weather starts, changes, or clears.";
             case BLOCK_ENTITY_DEBUG -> "Show loaded storage and flagged-chunk counts on the HUD.";
+            case AUTO_CLICKER -> "Repeat your held attack input at a capped rate using vanilla cooldown.";
+            case TRIGGER_BOT -> "Attack a living entity under your crosshair at vanilla cooldown speed.";
             default -> null;
         };
     }
@@ -343,6 +351,8 @@ public final class VantaScreen extends Screen {
             case AUTO_TOOL -> "Select a faster mining tool from the hotbar";
             case WEATHER_NOTIFIER -> "Weather transition notifications";
             case BLOCK_ENTITY_DEBUG -> "Loaded block-entity scan counters";
+            case AUTO_CLICKER -> "Repeat held attack input with configurable CPS";
+            case TRIGGER_BOT -> "Attack a living crosshair target";
             default -> "Module configuration";
         };
     }
@@ -358,6 +368,8 @@ public final class VantaScreen extends Screen {
             case AUTO_TOOL -> "Select the quickest hotbar tool while the attack key is held on a block.";
             case WEATHER_NOTIFIER -> "Report weather transitions in the current world.";
             case BLOCK_ENTITY_DEBUG -> "Display the latest loaded-storage scan counts.";
+            case AUTO_CLICKER -> "Repeat your held attack input without changing Minecraft's cooldown.";
+            case TRIGGER_BOT -> "Attack the living entity under your crosshair at vanilla cooldown speed.";
             default -> "Configure this module.";
         };
     }
@@ -488,6 +500,14 @@ public final class VantaScreen extends Screen {
                     updateSlider(mx);
                 }
             }
+            case AUTO_CLICKER -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 205, w, 54)) {
+                    activeSlider = "autoClick";
+                    updateSlider(mx);
+                }
+            }
             default -> config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
         }
         config.sanitize();
@@ -503,6 +523,7 @@ public final class VantaScreen extends Screen {
             case "range" -> config.range = 8 + (int) Math.round(progress * 120);
             case "threshold" -> config.containersPerChunk = 2 + (int) Math.round(progress * 62);
             case "autoEat" -> config.autoEatThreshold = 1 + (int) Math.round(progress * 18);
+            case "autoClick" -> config.autoClickCps = 1 + (int) Math.round(progress * 19);
         }
         config.sanitize();
     }
