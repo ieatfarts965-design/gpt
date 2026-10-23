@@ -8,13 +8,17 @@ Vanta Client is a client-side Fabric mod for Minecraft 1.21.1. It has a dark pur
 - **Suspicious ESP** uses a warning color for storage in chunks meeting that threshold.
 - **Chunk Finder** notifies when nearby chunks first appear in the client-loaded set. Its message supports `{x}` and `{z}`.
 - **Empty Chunk Relog Prompt** checks the current loaded chunk when you reach Y -20. If no selected storage block entities are present, Vanta asks you to relog once. After reconnect, it checks that same chunk after it has loaded; if still empty, it sends **“Nothing found.”** once and suppresses further prompts.
-- The first prompt can be changed in the module settings. Settings are saved to `config/vanta-client.json`.
+- **Fullbright** raises local gamma while enabled and restores the previous value when disabled.
+- **Sprint** requests the sprint state while enabled; normal Minecraft movement limits still apply.
+- **HUD** shows Vanta, coordinates, and FPS.
+- **Player ESP** and **Mob ESP** draw boxes for loaded entities in render range.
+- Settings are saved to `config/vanta-client.json`.
 
 ## Module catalogue status
 
-The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Storage ESP, Sus Chunk Finder, Suspicious ESP, Chunk Finder, and Empty Chunk Relog Prompt have game behavior and module-specific settings. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
+The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Ten modules currently have game behavior and module-specific controls. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
 
-Vanta sees only block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded. The Y -20 prompt counts selected storage block entities in the loaded chunk, not hidden items inside storage. The mod does not include ban-evasion or ban-bypass behavior.
+Vanta sees only block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded. The Y -20 prompt counts selected storage block entities in the loaded chunk, not hidden items inside storage. Vanta does not include stealth, anti-cheat evasion, or ban-bypass behavior.
 
 ## Build
 
