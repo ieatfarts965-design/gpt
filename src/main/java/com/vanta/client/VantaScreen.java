@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 8815)
-Total output lines: 734
-
 package com.vanta.client;
 
 import net.minecraft.client.gui.DrawContext;
@@ -289,7 +286,73 @@ public final class VantaScreen extends Screen {
     private void drawStorageChips(DrawContext c, int x, int y, int w, int mx, int my) {
         String[] names = {"Chest", "Trapped", "Ender", "Barrel", "Shulker"};
         boolean[] values = {config.chests, config.trappedChests, config.enderChests, config.barrels, config.shulkerBoxes};
-        …815 tokens truncated… chunks arrive from the server.";
+        int gap = 5;
+        int chipW = (w - gap * 4) / 5;
+        for (int i = 0; i < names.length; i++) {
+            int bx = x + i * (chipW + gap);
+            boolean hover = inside(mx, my, bx, y, chipW, 28);
+            c.fill(bx, y, bx + chipW, y + 28, values[i] ? 0xFF23514E : hover ? PANEL_HOVER : PANEL);
+            centered(c, names[i], bx + chipW / 2, y + 9, values[i] ? ACCENT : MUTED);
+        }
+    }
+
+    private void drawInput(DrawContext c, int x, int y, int w, String label, String value, String id,
+                           int mx, int my) {
+        draw(c, label, x, y, MUTED);
+        int fy = y + 17;
+        boolean focused = focusedField.equals(id);
+        boolean hover = inside(mx, my, x, fy, w, 29);
+        c.fill(x, fy, x + w, fy + 29, focused ? 0xFF202A34 : hover ? PANEL_HOVER : PANEL);
+        c.fill(x, fy, x + w, fy + 1, focused ? ACCENT : BORDER);
+        String display = value == null ? "" : value;
+        int maxWidth = w - 22;
+        while (!display.isEmpty() && textRenderer.getWidth(display) > maxWidth) {
+            display = display.substring(1);
+        }
+        draw(c, display, x + 9, fy + 10, TEXT);
+        if (focused && (System.currentTimeMillis() / 500) % 2 == 0) {
+            int cursor = x + 9 + textRenderer.getWidth(display);
+            c.fill(cursor, fy + 8, cursor + 1, fy + 21, ACCENT);
+        }
+    }
+
+    private void drawText(DrawContext c, String value, int x, int y, int color) {
+        draw(c, value, x, y, color);
+    }
+
+    private void draw(DrawContext c, String value, int x, int y, int color) {
+        c.drawText(textRenderer, Text.literal(value), x, y, color, false);
+    }
+
+    private void centered(DrawContext c, String value, int centerX, int y, int color) {
+        c.drawText(textRenderer, Text.literal(value), centerX - textRenderer.getWidth(value) / 2, y, color, false);
+    }
+
+    private boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx < x + w && my >= y && my < y + h;
+    }
+
+    private String moduleSummary(Module module) {
+        return switch (module) {
+            case STORAGE_ESP -> "Block highlights and range controls";
+            case SUSPICIOUS_ESP -> "Highlights storage in flagged chunks";
+            case SUS_CHUNK_FINDER -> "Storage-count threshold scanner";
+            case DONUT_CHUNK_FINDER -> "Alerts on newly loaded chunks";
+            case RELOG_REMINDER -> "One relog prompt, followed by a single empty result";
+            case AUTO_EAT -> "Hotbar food at a configurable hunger level";
+            case AUTO_TOOL -> "Select a faster mining tool from the hotbar";
+            case WEATHER_NOTIFIER -> "Weather transition notifications";
+            case BLOCK_ENTITY_DEBUG -> "Loaded block-entity scan counters";
+            default -> "Module configuration";
+        };
+    }
+
+    private String moduleDescription(Module module) {
+        return switch (module) {
+            case STORAGE_ESP -> "Choose targets, style, and render range.";
+            case SUSPICIOUS_ESP -> "Mark storage blocks in chunks above your threshold.";
+            case SUS_CHUNK_FINDER -> "Count loaded storage block entities across full world height.";
+            case DONUT_CHUNK_FINDER -> "Track when new nearby chunks arrive from the server.";
             case RELOG_REMINDER -> "At Y -20, check the current loaded chunk and guide a single relog retry.";
             case AUTO_EAT -> "Eat hotbar food at the configured hunger threshold.";
             case AUTO_TOOL -> "Select the quickest hotbar tool while the attack key is held on a block.";
