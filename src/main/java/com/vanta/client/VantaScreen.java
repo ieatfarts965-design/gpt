@@ -199,7 +199,7 @@ public final class VantaScreen extends Screen {
         drawInput(c, x, contentY + 108, w, "FIRST PROMPT", config.relogMessage, "relog", mx, my);
         draw(c, "If nothing is detected, Vanta asks you to relog once.", x, contentY + 177, MUTED);
         draw(c, "After reconnect, the same empty chunk reports: Nothing found.", x, contentY + 197, MUTED);
-        draw(c, "The follow-up is suppressed until you move to another chunk.", x, contentY + 217, MUTED);
+        draw(c, "The empty result is reported once; this search will not prompt again.", x, contentY + 217, MUTED);
         draw(c, "Only loaded storage block entities are counted; container contents are not read.",
                 x, contentY + 248, MUTED);
     }
