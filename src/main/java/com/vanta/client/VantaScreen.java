@@ -247,6 +247,11 @@ public final class VantaScreen extends Screen {
             case BLOCK_ENTITY_DEBUG -> "Show loaded storage and flagged-chunk counts on the HUD.";
             case AUTO_CLICKER -> "Repeat your held attack input at a capped rate using vanilla cooldown.";
             case TRIGGER_BOT -> "Attack a living entity under your crosshair at vanilla cooldown speed.";
+            case AUTO_WALK -> "Hold forward at normal movement speed while enabled.";
+            case PLAYER_CHUNKS -> "Outline the current chunk footprint of nearby loaded players.";
+            case SPAWNER_PROTECT -> "Outline loaded spawners and alert once when each is first found.";
+            case TARGET_HUD -> "Show the crosshair target's name and health bar.";
+            case NETHERITE_FINDER -> "Outline ancient debris in loaded chunks between Y 8 and 23.";
             default -> null;
         };
     }
@@ -353,6 +358,11 @@ public final class VantaScreen extends Screen {
             case BLOCK_ENTITY_DEBUG -> "Loaded block-entity scan counters";
             case AUTO_CLICKER -> "Repeat held attack input with configurable CPS";
             case TRIGGER_BOT -> "Attack a living crosshair target";
+            case AUTO_WALK -> "Walk forward using the normal movement key";
+            case PLAYER_CHUNKS -> "Outline chunks containing loaded players";
+            case SPAWNER_PROTECT -> "Highlight and report loaded spawners";
+            case TARGET_HUD -> "Target name and health display";
+            case NETHERITE_FINDER -> "Loaded ancient-debris scan";
             default -> "Module configuration";
         };
     }
@@ -370,6 +380,11 @@ public final class VantaScreen extends Screen {
             case BLOCK_ENTITY_DEBUG -> "Display the latest loaded-storage scan counts.";
             case AUTO_CLICKER -> "Repeat your held attack input without changing Minecraft's cooldown.";
             case TRIGGER_BOT -> "Attack the living entity under your crosshair at vanilla cooldown speed.";
+            case AUTO_WALK -> "Hold forward while enabled; movement uses the normal client input.";
+            case PLAYER_CHUNKS -> "Outline the chunk footprints of nearby players already loaded by the client.";
+            case SPAWNER_PROTECT -> "Highlight nearby loaded mob spawners and report newly found positions once.";
+            case TARGET_HUD -> "Show the name and health of the living entity under your crosshair.";
+            case NETHERITE_FINDER -> "Scan loaded chunk blocks from Y 8 through 23 for ancient debris.";
             default -> "Configure this module.";
         };
     }
