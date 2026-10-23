@@ -18,11 +18,16 @@ Vanta Client is a client-side Fabric mod for Minecraft 1.21.1. It has a dark pur
 - **Block Entity Debug** shows the latest loaded-storage and flagged-chunk scan counts in the HUD.
 - **Auto Clicker** repeats your held attack input at a configurable rate while retaining Minecraft's attack cooldown.
 - **Trigger Bot** attacks a living entity under your crosshair at vanilla cooldown speed.
+- **Auto Walk** holds forward using normal client movement input.
+- **Player Chunks** outlines the chunk footprints of nearby players already loaded by the client.
+- **Spawner Protect** outlines loaded mob spawners and reports each newly found position once.
+- **Target HUD** displays the living crosshair target's name and health bar.
+- **Netherite Finder** outlines ancient debris between Y 8 and 23 in chunks already loaded by the client.
 - Settings are saved to `config/vanta-client.json`.
 
 ## Module catalogue status
 
-The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Sixteen modules currently have game behavior and module-specific controls. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
+The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Twenty-one modules currently have game behavior and module-specific controls. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
 
 Vanta sees only block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded. The Y -20 prompt counts selected storage block entities in the loaded chunk, not hidden items inside storage. Vanta does not include stealth, anti-cheat evasion, or ban-bypass behavior.
 
