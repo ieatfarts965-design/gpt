@@ -8,12 +8,14 @@ import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.block.BarrelBlock;
 import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.ChestBlock;
 import net.minecraft.block.EnderChestBlock;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.block.TrappedChestBlock;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.MobSpawnerBlockEntity;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.FoodComponent;
 import net.minecraft.client.MinecraftClient;
@@ -46,8 +48,11 @@ public final class VantaClient implements ClientModInitializer {
     private static final Set<Long> ALERTED_CHUNKS = new HashSet<>();
     private static final Set<Long> PREVIOUS_LOADED_CHUNKS = new HashSet<>();
     private static final Set<Long> SUSPECT_CHUNK_KEYS = new HashSet<>();
+    private static final Set<BlockPos> ALERTED_SPAWNERS = new HashSet<>();
     private static List<SuspectChunk> suspectChunks = List.of();
     private static List<BlockPos> storagePositions = List.of();
+    private static List<BlockPos> spawnerPositions = List.of();
+    private static List<BlockPos> debrisPositions = List.of();
     private static KeyBinding toggleKey;
     private static KeyBinding menuKey;
     private static int scanTicks;
@@ -67,6 +72,7 @@ public final class VantaClient implements ClientModInitializer {
     private static boolean previousThundering;
     private static boolean weatherInitialized;
     private static int autoClickTicks;
+    private static boolean autoWalkApplied;
 
     @Override
     public void onInitializeClient() {
@@ -93,7 +99,10 @@ public final class VantaClient implements ClientModInitializer {
             if (client.world == null || client.player == null) {
                 suspectChunks = List.of();
                 storagePositions = List.of();
+                spawnerPositions = List.of();
+                debrisPositions = List.of();
                 ALERTED_CHUNKS.clear();
+                ALERTED_SPAWNERS.clear();
                 PREVIOUS_LOADED_CHUNKS.clear();
                 SUSPECT_CHUNK_KEYS.clear();
                 chunkFinderInitialized = false;
@@ -121,7 +130,9 @@ public final class VantaClient implements ClientModInitializer {
 
         WorldRenderEvents.LAST.register(context -> {
             MinecraftClient client = MinecraftClient.getInstance();
-            if ((!CONFIG.enabled && !moduleEnabled("PLAYER_ESP") && !moduleEnabled("MOB_ESP"))
+            if ((!CONFIG.enabled && !moduleEnabled("PLAYER_ESP") && !moduleEnabled("MOB_ESP")
+                    && !moduleEnabled("PLAYER_CHUNKS") && !moduleEnabled("SPAWNER_PROTECT"))
+                    && !moduleEnabled("NETHERITE_FINDER")
                     || client.world == null || client.player == null
                     || context.matrixStack() == null || context.consumers() == null) {
                 return;
@@ -147,6 +158,31 @@ public final class VantaClient implements ClientModInitializer {
                         client.player.getBoundingBox().expand(CONFIG.range), entity -> true)) {
                     WorldRenderer.drawBox(matrices, lines, target.getBoundingBox().expand(0.04),
                             1.0f, 0.68f, 0.24f, 0.9f);
+                }
+            }
+            if (moduleEnabled("PLAYER_CHUNKS")) {
+                for (PlayerEntity target : client.world.getPlayers()) {
+                    if (target == client.player || client.player.squaredDistanceTo(target) > rangeSquared) continue;
+                    int chunkX = target.getBlockPos().getX() >> 4;
+                    int chunkZ = target.getBlockPos().getZ() >> 4;
+                    double y = Math.floor(target.getY()) + 0.02;
+                    Box footprint = new Box(chunkX * 16.0, y, chunkZ * 16.0,
+                            (chunkX + 1) * 16.0, y + 0.04, (chunkZ + 1) * 16.0);
+                    WorldRenderer.drawBox(matrices, lines, footprint, 0.55f, 0.38f, 1.0f, 0.75f);
+                }
+            }
+            if (moduleEnabled("SPAWNER_PROTECT")) {
+                for (BlockPos pos : spawnerPositions) {
+                    if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) continue;
+                    WorldRenderer.drawBox(matrices, lines, new Box(pos).expand(0.04),
+                            1.0f, 0.56f, 0.18f, 0.95f);
+                }
+            }
+            if (moduleEnabled("NETHERITE_FINDER")) {
+                for (BlockPos pos : debrisPositions) {
+                    if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) continue;
+                    WorldRenderer.drawBox(matrices, lines, new Box(pos).expand(0.02),
+                            0.35f, 0.95f, 0.68f, 1.0f);
                 }
             }
 
@@ -192,6 +228,23 @@ public final class VantaClient implements ClientModInitializer {
                         + "  flagged chunks " + suspectChunks.size();
                 context.drawText(client.textRenderer, Text.literal(info), 8, 22, 0xFFBBA8FF, true);
             }
+            if (moduleEnabled("TARGET_HUD") && client.targetedEntity instanceof LivingEntity target
+                    && target.isAlive() && target != client.player) {
+                int left = 8;
+                int top = moduleEnabled("HUD") ? 42 : 8;
+                int right = 190;
+                context.fill(left, top, right, top + 43, 0xD014171E);
+                context.fill(left, top, right, top + 1, 0xFF9A7BFF);
+                context.drawText(client.textRenderer, target.getDisplayName(), left + 8, top + 7,
+                        0xFFE6E9EF, true);
+                float health = Math.max(0.0f, Math.min(1.0f, target.getHealth() / target.getMaxHealth()));
+                context.fill(left + 8, top + 28, right - 8, top + 34, 0xFF343A46);
+                context.fill(left + 8, top + 28, left + 8 + (int) ((right - left - 16) * health),
+                        top + 34, 0xFF9A7BFF);
+                String healthText = String.format("%.1f / %.1f", target.getHealth(), target.getMaxHealth());
+                context.drawText(client.textRenderer, Text.literal(healthText), left + 8, top + 36,
+                        0xFFBFC5D0, true);
+            }
         });
     }
 
@@ -218,13 +271,27 @@ public final class VantaClient implements ClientModInitializer {
             stopAutoEat(client);
             stopAutoTool(client);
             autoClickTicks = 0;
+            tickAutoWalk(client);
             weatherInitialized = false;
             return;
         }
         tickAutoEat(client);
         tickAutoTool(client);
         tickCombatAutomation(client);
+        tickAutoWalk(client);
         tickWeatherNotifier(client);
+    }
+
+    private static void tickAutoWalk(MinecraftClient client) {
+        boolean shouldWalk = moduleEnabled("AUTO_WALK") && client.player != null && client.world != null
+                && client.currentScreen == null;
+        if (shouldWalk) {
+            client.options.forwardKey.setPressed(true);
+            autoWalkApplied = true;
+        } else if (autoWalkApplied) {
+            client.options.forwardKey.setPressed(false);
+            autoWalkApplied = false;
+        }
     }
 
     private static void tickCombatAutomation(MinecraftClient client) {
@@ -248,7 +315,8 @@ public final class VantaClient implements ClientModInitializer {
                 && client.player.getAttackCooldownProgress(0.5f) >= 0.99f) {
             click = true;
         }
-        if (click) KeyBinding.onKeyPressed(client.options.attackKey.getBoundKey());
+        if (click) KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(
+                client.options.attackKey.getBoundKeyTranslationKey()));
     }
 
     private static void tickAutoEat(MinecraftClient client) {
@@ -371,6 +439,8 @@ public final class VantaClient implements ClientModInitializer {
     private static void scanLoadedChunks(MinecraftClient client) {
         Map<Long, ChunkCount> counts = new HashMap<>();
         List<BlockPos> currentStoragePositions = new ArrayList<>();
+        List<BlockPos> currentSpawnerPositions = new ArrayList<>();
+        List<BlockPos> currentDebrisPositions = new ArrayList<>();
         Set<Long> loadedNow = new HashSet<>();
         int centerChunkX = client.player.getBlockPos().getX() >> 4;
         int centerChunkZ = client.player.getBlockPos().getZ() >> 4;
@@ -387,8 +457,29 @@ public final class VantaClient implements ClientModInitializer {
                             .replace("{z}", Integer.toString(chunkZ));
                     client.player.sendMessage(Text.literal(message), false);
                 }
+                if (moduleEnabled("NETHERITE_FINDER")) {
+                    BlockPos.Mutable cursor = new BlockPos.Mutable();
+                    for (int localX = 0; localX < 16; localX++) {
+                        for (int localZ = 0; localZ < 16; localZ++) {
+                            for (int y = 8; y <= 23; y++) {
+                                cursor.set(chunkX * 16 + localX, y, chunkZ * 16 + localZ);
+                                if (chunk.getBlockState(cursor).isOf(Blocks.ANCIENT_DEBRIS)) {
+                                    currentDebrisPositions.add(cursor.toImmutable());
+                                }
+                            }
+                        }
+                    }
+                }
                 for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
-                if (!isStorage(blockEntity.getCachedState().getBlock())) continue;
+                    if (blockEntity instanceof MobSpawnerBlockEntity) {
+                        BlockPos spawner = blockEntity.getPos().toImmutable();
+                        currentSpawnerPositions.add(spawner);
+                        if (moduleEnabled("SPAWNER_PROTECT") && ALERTED_SPAWNERS.add(spawner)) {
+                            client.player.sendMessage(Text.literal("Spawner detected at "
+                                    + spawner.getX() + ", " + spawner.getY() + ", " + spawner.getZ()), false);
+                        }
+                    }
+                    if (!isStorage(blockEntity.getCachedState().getBlock())) continue;
                     BlockPos pos = blockEntity.getPos();
                     currentStoragePositions.add(pos.toImmutable());
                     ChunkCount count = counts.get(key);
@@ -426,6 +517,9 @@ public final class VantaClient implements ClientModInitializer {
         current.sort((left, right) -> Integer.compare(right.count(), left.count()));
         suspectChunks = List.copyOf(current);
         storagePositions = List.copyOf(currentStoragePositions);
+        spawnerPositions = List.copyOf(currentSpawnerPositions);
+        debrisPositions = List.copyOf(currentDebrisPositions);
+        ALERTED_SPAWNERS.retainAll(currentSpawnerPositions);
     }
 
     private static void checkEmptyChunkRelogFlow(MinecraftClient client) {
