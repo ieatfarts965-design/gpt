@@ -22,7 +22,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.FoodComponent;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
-import net.minecraft.client.gui.screen.multiplayer.DisconnectedScreen;
+import net.minecraft.client.gui.screen.DisconnectedScreen;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.network.ServerAddress;
 import net.minecraft.client.network.ServerInfo;
