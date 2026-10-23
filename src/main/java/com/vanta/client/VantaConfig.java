@@ -37,6 +37,7 @@ public final class VantaConfig {
     public int emptyChunkX;
     public int emptyChunkZ;
     public String relogMessage = "Nothing detected at Y -20. Relog once to refresh this chunk, then check again.";
+    public int autoEatThreshold = 14;
     public Map<String, Boolean> moduleToggles = new LinkedHashMap<>();
 
     public static VantaConfig load() {
@@ -69,6 +70,7 @@ public final class VantaConfig {
         if (emptyChunkState == null) emptyChunkState = EmptyChunkState.IDLE;
         range = Math.max(8, Math.min(128, range));
         containersPerChunk = Math.max(2, Math.min(64, containersPerChunk));
+        autoEatThreshold = Math.max(1, Math.min(19, autoEatThreshold));
         if (alertMessage == null || alertMessage.isBlank()) {
             alertMessage = "Storage cluster at chunk {x}, {z}: {count} containers";
         }
