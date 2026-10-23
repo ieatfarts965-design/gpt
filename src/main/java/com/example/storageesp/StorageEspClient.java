@@ -134,7 +134,11 @@ public final class StorageEspClient implements ClientModInitializer {
                     BlockPos pos = blockEntity.getPos();
                     currentStoragePositions.add(pos.toImmutable());
                     long key = chunkKey(chunkX, chunkZ);
-                    ChunkCount count = counts.computeIfAbsent(key, ignored -> new ChunkCount(chunkX, chunkZ));
+                    ChunkCount count = counts.get(key);
+                    if (count == null) {
+                        count = new ChunkCount(chunkX, chunkZ);
+                        counts.put(key, count);
+                    }
                     count.count++;
                 }
             }
