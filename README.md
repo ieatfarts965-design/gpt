@@ -25,13 +25,26 @@ Vanta Client is a client-side Fabric mod for Minecraft 1.21.1. It has a dark pur
 - **Netherite Finder** outlines ancient debris between Y 8 and 23 in chunks already loaded by the client.
 - **Hole ESP** outlines nearby two-block-high cavities with solid floors and walls.
 - **Light Finder** marks nearby air blocks at or below a configurable light level.
+- **Block ESP** outlines nearby loaded diamond ore, emerald ore, and ancient debris.
+- **Auto Mine** holds normal attack while your crosshair points at a block.
+- **Auto Jump Reset** requests a normal jump when you take damage while grounded.
+- **Block Notifier** watches the block under your crosshair and reports state changes.
+- **Jump Circles** draws a fading ring after a landing.
+- **Static Hitboxes** draws fixed-size outlines around nearby loaded players.
+- **Real Hitbox** draws current collision bounds around nearby loaded living entities.
+- **Auto Log** disconnects once when health reaches the configurable threshold.
+- **Combat tools** include aim assist, anchor interactions, automatic crystal placement and attacks, offhand use, crystal placement markers, chest-slot elytra swaps, target hitbox visuals, mace selection/attacks, shield-breaker axe selection, trident selection, and the local no-hit-delay option. Server rules still control accepted hits and damage.
+- **Other utilities** include a local fake-player stand-in, movable client-only freecam, independent free look, nearby name list, jukebox music labels, name masking in local chat/tab list, and a local replacement skin preview.
+- **Chunk tools** include prime storage alerts, tunnel markers, and seed-based slime-chunk outlines for loaded chunks.
+- **Local previews** include configurable fake payment text and fake statistics HUD text. They are never sent to the server.
+- **Integrations** include a configurable Discord Rich Presence connection and local radio playback for direct PCM WAV/AIFF URLs.
 - Settings are saved to `config/vanta-client.json`.
 
 ## Module catalogue status
 
-The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Twenty-three modules currently have game behavior and module-specific controls. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
+The menu contains all 83 modules in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Eighty-two have implemented behavior or an explicit local integration. **Proxy** is visibly unavailable in this build because proxy routing was requested alongside ban bypass; no proxy or ban-bypass behavior is included. The catalogue is a feature reference, not copied implementation code.
 
-Vanta sees only block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded. The Y -20 prompt counts selected storage block entities in the loaded chunk, not hidden items inside storage. Vanta does not include stealth, anti-cheat evasion, or ban-bypass behavior.
+Vanta sees only block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded. The Y -20 prompt counts selected storage block entities in the loaded chunk, not hidden items inside storage. The seed finder requires a numeric seed you already know. Discord Presence requires Discord Desktop and a numeric application ID on Windows. Radio accepts direct PCM WAV/AIFF streams, depending on the system audio device. Fake Pay and Fake Stats only display local preview text. Name and skin protection only affect local client rendering. No stealth, anti-cheat evasion, or ban-bypass behavior is included.
 
 ## Build
 

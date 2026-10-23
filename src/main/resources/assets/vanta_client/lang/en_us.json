@@ -1,6 +1,21 @@
 {
   "key.vanta.toggle": "Toggle Vanta Storage ESP",
   "key.vanta.menu": "Open Vanta Client menu",
+  "key.vanta.pearl": "Vanta: Use Ender Pearl",
+  "key.vanta.wind_charge": "Vanta: Use Wind Charge",
+  "key.vanta.cord_snapper": "Vanta: Copy coordinates",
+  "key.vanta.chat_macro": "Vanta: Chat macro",
+  "key.vanta.item_dropper": "Vanta: Drop selected stack",
+  "key.vanta.auto_sell": "Vanta: Auto sell command",
+  "key.vanta.auto_spawner_sell": "Vanta: Spawner sell command",
+  "key.vanta.rtp_base_finder": "Vanta: RTP and scan chunks",
+  "key.vanta.elytra_swap": "Vanta: Elytra swap",
+  "key.vanta.fakeplayer": "Vanta: Toggle fake player",
+  "key.vanta.anchor_macro": "Vanta: Anchor macro",
+  "key.vanta.freecam": "Vanta: Toggle freecam",
+  "key.vanta.fake_pay": "Vanta: Local payment preview",
+  "key.vanta.radio": "Vanta: Toggle radio stream",
+  "key.vanta.discord_presence": "Vanta: Toggle Discord Rich Presence",
   "category.vanta": "Vanta Client"
 }
 

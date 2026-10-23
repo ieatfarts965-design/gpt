@@ -25,7 +25,7 @@ public final class VantaScreen extends Screen {
     private Module selectedModule = Module.STORAGE_ESP;
     private String focusedField = "";
     private String activeSlider = "";
-    private int moduleScroll;
+    private int moduleScroll = 6;
     private int panelX;
     private int panelY;
     private int panelWidth;
@@ -208,9 +208,14 @@ public final class VantaScreen extends Screen {
         String runtimeDescription = runtimeModuleDescription(selectedModule);
         drawToggle(c, x, contentY + 40, w, selectedModule.label,
                 runtimeDescription == null ? "Catalogue switch saved in your local Vanta profile" : runtimeDescription,
-                catalogEnabled(selectedModule), -1, -1);
+                moduleEnabled(selectedModule), -1, -1);
         c.fill(x, contentY + 105, x + w, contentY + 180, PANEL);
-        if (runtimeDescription != null) {
+        if (selectedModule == Module.PROXY) {
+            draw(c, "UNAVAILABLE IN THIS BUILD", x + 14, contentY + 119, ALERT);
+            draw(c, "Proxy routing is excluded because ban bypass was requested for this client.",
+                    x + 14, contentY + 141, TEXT);
+            draw(c, "No proxy settings are saved or applied.", x + 14, contentY + 158, MUTED);
+        } else if (runtimeDescription != null) {
             draw(c, "VANTA MODULE", x + 14, contentY + 119, MUTED);
             draw(c, "Runs in your local client while enabled.", x + 14, contentY + 141, TEXT);
             draw(c, "Uses normal client controls and loaded game state.", x + 14, contentY + 158, MUTED);
@@ -237,6 +242,61 @@ public final class VantaScreen extends Screen {
                     "light", -1, -1);
             draw(c, "Marks dark air blocks in the nearby area, up to 512 markers.",
                     x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.AUTO_LOG) {
+            drawSlider(c, x, contentY + 205, w, "Disconnect at health", config.autoLogHealth,
+                    config.autoLogHealth + " HP", (config.autoLogHealth - 1) / 19.0,
+                    "autoLog", -1, -1);
+            draw(c, "Disconnects once when your health reaches the threshold.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.AUTO_TOTEM || selectedModule == Module.HOVER_TOTEM) {
+            drawSlider(c, x, contentY + 205, w, "Equip at health", config.totemHealthThreshold,
+                    config.totemHealthThreshold + " HP", (config.totemHealthThreshold - 1) / 19.0,
+                    "totem", -1, -1);
+            draw(c, "Uses the vanilla inventory swap action to equip an available totem.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.CHAT_MACRO) {
+            drawInput(c, x, contentY + 205, w, "MESSAGE  ·  PREFIX / FOR A COMMAND",
+                    config.chatMacroMessage, "macro", -1, -1);
+            draw(c, "Press J by default. Change the key in Minecraft Controls.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.FRIENDS) {
+            drawInput(c, x, contentY + 205, w, "FRIEND NAMES  ·  COMMA OR SPACE SEPARATED",
+                    config.friendNames, "friends", -1, -1);
+            draw(c, "Friend colors only appear in Vanta overlays while enabled.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.AUTO_SELL) {
+            drawInput(c, x, contentY + 205, w, "SELL COMMAND", config.autoSellCommand, "sell", -1, -1);
+            draw(c, "Press K to send this command to the current server.", x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.AUTO_SPAWNER_SELL) {
+            drawInput(c, x, contentY + 205, w, "SPAWNER SELL COMMAND", config.autoSpawnerSellCommand,
+                    "spawnerSell", -1, -1);
+            draw(c, "Press B to send this command to the current server.", x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.RTP_BASE_FINDER) {
+            drawInput(c, x, contentY + 205, w, "RTP COMMAND", config.rtpCommand, "rtp", -1, -1);
+            draw(c, "Press R to run this command and scan new loaded chunks for storage.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.SEED_CHUNK_FINDER) {
+            drawInput(c, x, contentY + 205, w, "WORLD SEED  ·  INTEGER", config.seedFinderSeed, "seed", -1, -1);
+            draw(c, "Marks slime chunks only among terrain already loaded by your client.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.FAKE_PAY) {
+            drawInput(c, x, contentY + 205, w, "LOCAL PREVIEW TEXT", config.fakePayPreviewText, "fakePay", -1, -1);
+            draw(c, "Press F7 to show this text to yourself. Nothing is sent to the server.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.FAKE_STATS) {
+            drawInput(c, x, contentY + 205, w, "HUD PREVIEW TEXT", config.fakeStatsText, "fakeStats", -1, -1);
+            draw(c, "This is a local HUD preview and does not change server statistics.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.RADIO) {
+            drawInput(c, x, contentY + 205, w, "DIRECT PCM WAV / AIFF STREAM URL", config.radioUrl, "radio", -1, -1);
+            draw(c, "Press F8 to start or stop. Audio streams only; it is not sent to game chat.",
+                    x, contentY + 270, MUTED);
+        } else if (selectedModule == Module.DISCORD_PRESENCE) {
+            drawInput(c, x, contentY + 190, w, "DISCORD APPLICATION ID", config.discordApplicationId,
+                    "discordId", -1, -1);
+            drawInput(c, x, contentY + 248, w, "PRESENCE STATUS", config.discordStatus,
+                    "discordStatus", -1, -1);
+            draw(c, "Press F6. Discord desktop must be running on Windows.", x, contentY + 298, MUTED);
         }
     }
 
@@ -260,6 +320,66 @@ public final class VantaScreen extends Screen {
             case NETHERITE_FINDER -> "Outline ancient debris in loaded chunks between Y 8 and 23.";
             case HOLE_ESP -> "Outline nearby two-block-high cavities with solid floors and walls.";
             case LIGHT_FINDER -> "Mark nearby air blocks at or below a configurable light level.";
+            case BLOCK_ESP -> "Outline nearby loaded diamond ore, emerald ore, and ancient debris.";
+            case AUTO_MINE -> "Hold normal attack while your crosshair points at a block.";
+            case AUTO_JUMP_RESET -> "Jump when hurt while grounded, using normal Minecraft movement.";
+            case BLOCK_NOTIFIER -> "Notify when the block you are watching changes state.";
+            case JUMP_CIRCLES -> "Draw a fading ring when you land after a jump or fall.";
+            case STATIC_HITBOXES -> "Draw fixed-size outlines around nearby loaded players.";
+            case REAL_HITBOX -> "Draw current collision boxes around nearby loaded living entities.";
+            case AUTO_LOG -> "Disconnect from the current server at a configurable health threshold.";
+            case AUTO_FIREWORK -> "Use a hotbar firework rocket every two seconds while elytra-flying.";
+            case ELYTRA_GLIDE -> "Request a normal jump input when falling with an equipped elytra.";
+            case CORD_SNAPPER -> "Copy your block coordinates and chunk coordinates with C (default).";
+            case KEY_PEARL -> "Use a hotbar Ender Pearl with P (default); binds are configurable in Controls.";
+            case KEY_WIND_CHARGE -> "Use a hotbar Wind Charge with H (default); binds are configurable in Controls.";
+            case PEARL_TRAJECTORY -> "Draw a client-side estimate of the held Ender Pearl's path.";
+            case AUTO_TOTEM -> "Move an available totem to offhand at the configured health threshold.";
+            case AUTO_INV_TOTEM -> "Search inventory for a totem when health is critical.";
+            case HOVER_TOTEM -> "Equip an offhand totem when falling at low health.";
+            case TOTEM_OFFHAND -> "Keep a totem in offhand whenever one is available.";
+            case AUTO_LOOT -> "Move items out of open vanilla container screens into your inventory.";
+            case AUTO_RECONNECT -> "Retry the selected multiplayer server up to three times after a disconnect.";
+            case AUTO_TPA -> "Accept matching incoming teleport requests with the server's /tpaccept command.";
+            case FAST_PLACE -> "Hold normal use while targeting a block with a placeable block in hand.";
+            case CHAT_MACRO -> "Send your configured message with J (default); binds are configurable in Controls.";
+            case FRIENDS -> "Mark names from your list green in Player ESP, Player Chunks, and Target HUD.";
+            case AUTO_SELL -> "Run your configured sell command with K (default).";
+            case AUTO_SPAWNER_SELL -> "Run your configured spawner-sell command with B (default).";
+            case RTP_BASE_FINDER -> "Run the configured RTP command with R, then scan arriving chunks for storage.";
+            case ORE_SIM -> "Outline common ores in blocks already loaded by your client.";
+            case ANTI_TRAP -> "Request a normal jump when the player is inside a solid block.";
+            case ITEM_DROPPER -> "Drop the selected stack when you press N (default).";
+            case AIM_ASSIST -> "Gently guide your view toward a nearby visible player while you hold attack.";
+            case ANCHOR_MACRO -> "Press G to use the respawn anchor under your crosshair.";
+            case AUTO_CRYSTAL -> "Use a held End Crystal on a targeted obsidian or bedrock base.";
+            case AUTO_DOUBLE_HAND -> "Repeat offhand use while the normal use key is held.";
+            case AUTO_HIT_CRYSTAL -> "Attack an End Crystal under your crosshair at vanilla cooldown speed.";
+            case CRYSTAL_OPTIMIZER -> "Outline valid nearby End Crystal placement spots on loaded terrain.";
+            case DOUBLE_ANCHOR -> "Repeat the normal interact action while holding use on a respawn anchor.";
+            case ELYTRA_SWAP -> "Press X to swap a hotbar item with your chest slot.";
+            case HITBOX -> "Highlight the living entity currently under your crosshair.";
+            case MACE_BOMBER -> "Attack a living target while falling with a mace equipped.";
+            case MACE_SWAP -> "Select a hotbar mace while falling toward a living target.";
+            case SHIELD_BREAKER -> "Select a hotbar axe while attacking a player who is blocking.";
+            case SPEAR_SWAP -> "Select a hotbar trident while submerged and targeting a living entity.";
+            case FAKEPLAYER -> "Create a client-only player stand-in at your current position.";
+            case FREECAM -> "Move a client-only camera with movement keys; your player stays in the world.";
+            case FREE_LOOK -> "Use a local camera view tethered to your player position.";
+            case NAME_TAGS -> "List nearby loaded players and distances in the HUD.";
+            case MUSIC_HUD -> "Show the names of records in nearby loaded jukeboxes.";
+            case SEED_CHUNK_FINDER -> "Use a configured world seed to outline loaded slime chunks.";
+            case NO_HIT_DELAY -> "Remove the local attack cooldown check; the server still decides whether attacks deal damage.";
+            case SWING_SPEED -> "Repeat the swing animation while attack is held; server damage timing is unchanged.";
+            case NAME_PROTECT -> "Replace your account name in local chat and the tab list with Vanta.";
+            case SKIN_PROTECT -> "Show the default Steve texture for your own player model on this client.";
+            case FAKE_PAY -> "Press F7 to print your configured payment preview in local chat only.";
+            case FAKE_STATS -> "Show a configurable statistics preview in your HUD; values are local text.";
+            case PRIME_CHUNK_FINDER -> "Alert when a loaded chunk contains at least twice the storage threshold.";
+            case TUNNEL_BASE_FINDER -> "Mark straight three-block tunnels in already loaded terrain.";
+            case RADIO -> "Play a configured direct PCM WAV or AIFF stream locally with F8.";
+            case DISCORD_PRESENCE -> "Send a local Rich Presence status to the running Discord desktop app with F6.";
+            case PROXY -> "Unavailable in this build because the requested proxy module would enable ban bypass.";
             default -> null;
         };
     }
@@ -373,6 +493,66 @@ public final class VantaScreen extends Screen {
             case NETHERITE_FINDER -> "Loaded ancient-debris scan";
             case HOLE_ESP -> "Nearby enclosed two-block cavities";
             case LIGHT_FINDER -> "Nearby dark air blocks";
+            case BLOCK_ESP -> "Loaded rare-ore outlines";
+            case AUTO_MINE -> "Hold attack on the targeted block";
+            case AUTO_JUMP_RESET -> "Jump on grounded hurt frames";
+            case BLOCK_NOTIFIER -> "Watch the targeted block for state changes";
+            case JUMP_CIRCLES -> "Landing ring visual";
+            case STATIC_HITBOXES -> "Fixed-size player outlines";
+            case REAL_HITBOX -> "Living entity collision outlines";
+            case AUTO_LOG -> "Disconnect at a health threshold";
+            case AUTO_FIREWORK -> "Firework boost while elytra-flying";
+            case ELYTRA_GLIDE -> "Start gliding with normal jump input";
+            case CORD_SNAPPER -> "Copy position and chunk coordinates";
+            case KEY_PEARL -> "Use a hotbar pearl on a key press";
+            case KEY_WIND_CHARGE -> "Use a hotbar wind charge on a key press";
+            case PEARL_TRAJECTORY -> "Estimate the held pearl flight path";
+            case AUTO_TOTEM -> "Equip totem below health threshold";
+            case AUTO_INV_TOTEM -> "Search inventory for a totem";
+            case HOVER_TOTEM -> "Equip totem during a dangerous fall";
+            case TOTEM_OFFHAND -> "Keep a totem in offhand";
+            case AUTO_LOOT -> "Quick-move items from an open container";
+            case AUTO_RECONNECT -> "Retry a disconnected multiplayer server";
+            case AUTO_TPA -> "Respond to recognized teleport requests";
+            case FAST_PLACE -> "Hold use on a placeable block target";
+            case CHAT_MACRO -> "Send a saved chat message on a key";
+            case FRIENDS -> "Color saved friend names green";
+            case AUTO_SELL -> "Run a server sell command on key press";
+            case AUTO_SPAWNER_SELL -> "Run a server spawner-sell command on key press";
+            case RTP_BASE_FINDER -> "Run RTP and scan new chunks for storage";
+            case ORE_SIM -> "Mark ores in nearby loaded terrain";
+            case ANTI_TRAP -> "Jump when inside a solid block";
+            case ITEM_DROPPER -> "Drop selected stack with a key";
+            case AIM_ASSIST -> "View guidance toward a nearby target";
+            case ANCHOR_MACRO -> "Interact with a targeted respawn anchor";
+            case AUTO_CRYSTAL -> "Place a held crystal on a valid target";
+            case AUTO_DOUBLE_HAND -> "Repeat offhand use input";
+            case AUTO_HIT_CRYSTAL -> "Attack a targeted crystal";
+            case CRYSTAL_OPTIMIZER -> "Valid loaded placement spots";
+            case DOUBLE_ANCHOR -> "Repeat a held anchor interaction";
+            case ELYTRA_SWAP -> "Chest equipment swap key";
+            case HITBOX -> "Crosshair target collision outline";
+            case MACE_BOMBER -> "Fall-window mace attack";
+            case MACE_SWAP -> "Select mace during a fall";
+            case SHIELD_BREAKER -> "Select axe against a blocking player";
+            case SPEAR_SWAP -> "Select trident underwater";
+            case FAKEPLAYER -> "Client-side player stand-in";
+            case FREECAM -> "Client-only movable camera";
+            case FREE_LOOK -> "Local camera tethered to player";
+            case NAME_TAGS -> "Nearby player names and distances";
+            case MUSIC_HUD -> "Nearby jukebox record labels";
+            case SEED_CHUNK_FINDER -> "Loaded slime-chunk overlay from entered seed";
+            case NO_HIT_DELAY -> "Local attack timer option";
+            case SWING_SPEED -> "Repeat held swing animation";
+            case NAME_PROTECT -> "Mask your name in chat and tab list";
+            case SKIN_PROTECT -> "Replace your own skin locally";
+            case FAKE_PAY -> "Local payment text preview";
+            case FAKE_STATS -> "Local stats HUD preview";
+            case PRIME_CHUNK_FINDER -> "High storage count alert";
+            case TUNNEL_BASE_FINDER -> "Loaded terrain tunnel markers";
+            case RADIO -> "Local audio stream control";
+            case DISCORD_PRESENCE -> "Discord desktop Rich Presence";
+            case PROXY -> "Unavailable for this project scope";
             default -> "Module configuration";
         };
     }
@@ -397,6 +577,66 @@ public final class VantaScreen extends Screen {
             case NETHERITE_FINDER -> "Scan loaded chunk blocks from Y 8 through 23 for ancient debris.";
             case HOLE_ESP -> "Find enclosed, two-block-high holes within 20 blocks of your position.";
             case LIGHT_FINDER -> "Mark low-light air blocks around your current height.";
+            case BLOCK_ESP -> "Scan loaded blocks within 20 horizontal blocks and 16 vertical blocks.";
+            case AUTO_MINE -> "Mine the block under your crosshair at normal client mining speed.";
+            case AUTO_JUMP_RESET -> "Request a normal jump after taking damage while grounded.";
+            case BLOCK_NOTIFIER -> "Track the block under your crosshair and alert if its state changes.";
+            case JUMP_CIRCLES -> "Show a short fading ring after you land.";
+            case STATIC_HITBOXES -> "Show a 0.6 by 1.8 block outline around nearby loaded players.";
+            case REAL_HITBOX -> "Show the current collision bounds of nearby loaded living entities.";
+            case AUTO_LOG -> "Leave the current server once when your health reaches the threshold.";
+            case AUTO_FIREWORK -> "Use a firework from the hotbar at most once every 40 ticks while flying.";
+            case ELYTRA_GLIDE -> "Request the normal jump action while falling with an elytra equipped.";
+            case CORD_SNAPPER -> "Press C to copy your block position and chunk coordinates to the clipboard.";
+            case KEY_PEARL -> "Press P to select and use the first hotbar Ender Pearl, then restore your slot.";
+            case KEY_WIND_CHARGE -> "Press H to select and use the first hotbar Wind Charge, then restore your slot.";
+            case PEARL_TRAJECTORY -> "Render an estimated projectile arc when a pearl is held; actual server physics may vary.";
+            case AUTO_TOTEM -> "Swap an available totem into offhand when health reaches the chosen threshold.";
+            case AUTO_INV_TOTEM -> "Search the full player inventory and equip a totem below 6 health.";
+            case HOVER_TOTEM -> "Equip a totem while falling below the chosen health threshold.";
+            case TOTEM_OFFHAND -> "Keep an available totem in offhand while enabled.";
+            case AUTO_LOOT -> "Quick-move each item from a vanilla container screen into your inventory.";
+            case AUTO_RECONNECT -> "Retry a multiplayer disconnect after a delay, up to three attempts; disabled in singleplayer.";
+            case AUTO_TPA -> "Send /tpaccept when a chat message matches common English teleport-request wording.";
+            case FAST_PLACE -> "Hold the normal use input while a block is targeted and a placeable block is selected.";
+            case CHAT_MACRO -> "Press J to send the configured text; a leading slash sends a command.";
+            case FRIENDS -> "Enter comma-separated names. Friend colors appear in Vanta player overlays.";
+            case AUTO_SELL -> "Press K to send the configured command. Syntax varies by server.";
+            case AUTO_SPAWNER_SELL -> "Press B to send the configured command. Syntax varies by server.";
+            case RTP_BASE_FINDER -> "Press R to send the configured RTP command, then scan arriving chunks for storage.";
+            case ORE_SIM -> "Highlight common and rare ores in nearby chunks already loaded by the client.";
+            case ANTI_TRAP -> "Request a jump input while Minecraft reports the player inside a wall.";
+            case ITEM_DROPPER -> "Press N to drop the entire selected stack with the normal game action.";
+            case AIM_ASSIST -> "While attack is held, gradually adjusts your local view toward visible players within 4.5 blocks and 24 degrees.";
+            case ANCHOR_MACRO -> "Press G while looking at a respawn anchor to interact with it using glowstone in offhand when available.";
+            case AUTO_CRYSTAL -> "With an End Crystal selected, automatically uses it when your crosshair targets obsidian or bedrock.";
+            case AUTO_DOUBLE_HAND -> "While use is held and offhand is non-empty, invokes offhand interaction every six ticks.";
+            case AUTO_HIT_CRYSTAL -> "Attacks only an End Crystal under your crosshair, using Minecraft's attack cooldown.";
+            case CRYSTAL_OPTIMIZER -> "Outlines air spaces above loaded obsidian or bedrock with two air blocks; it does not place crystals.";
+            case DOUBLE_ANCHOR -> "Repeats the normal main-hand interaction every eight ticks while use is held on a respawn anchor.";
+            case ELYTRA_SWAP -> "Press X to swap the chest slot with an elytra or another non-empty hotbar item.";
+            case HITBOX -> "Draws an outline around the living entity under your crosshair; it does not change reach or collision.";
+            case MACE_BOMBER -> "When falling toward a living target, attacks with a mace at vanilla cooldown speed.";
+            case MACE_SWAP -> "Selects a hotbar mace when you are falling toward a living target and restores your slot afterward.";
+            case SHIELD_BREAKER -> "Selects a hotbar axe while you hold attack on a blocking player, then restores your slot.";
+            case SPEAR_SWAP -> "Selects a hotbar trident while submerged and aiming at a living target, then restores your slot.";
+            case FAKEPLAYER -> "Adds a local-only stand-in named VantaDummy at the position where the toggle was enabled.";
+            case FREECAM -> "Moves a local-only camera entity with movement keys. It does not move your server-side player.";
+            case FREE_LOOK -> "Uses a local camera entity at your position and routes mouse-look to that camera.";
+            case NAME_TAGS -> "Lists nearby loaded player names and distances in the HUD; this does not change world nameplates.";
+            case MUSIC_HUD -> "Lists up to three records found in nearby loaded jukebox block entities.";
+            case SEED_CHUNK_FINDER -> "Enter the numeric world seed to outline slime chunks among terrain already loaded by your client.";
+            case NO_HIT_DELAY -> "Removes the local cooldown gate for attack input. A multiplayer server still validates attack timing and damage.";
+            case SWING_SPEED -> "Plays a local swing animation every three ticks while attack is held. It does not alter server-side damage timing.";
+            case NAME_PROTECT -> "Masks your account name as Vanta in client chat and the tab list; it does not change the name sent to a server.";
+            case SKIN_PROTECT -> "Replaces your own skin texture with the default Steve texture in this client only.";
+            case FAKE_PAY -> "Press F7 to display the configured preview message in your own chat. No command or payment packet is sent.";
+            case FAKE_STATS -> "Displays configured text prefixed as a local stats preview. It does not change server data.";
+            case PRIME_CHUNK_FINDER -> "Alerts once when an already loaded chunk reaches at least the larger of 16 storage blocks or twice your storage threshold.";
+            case TUNNEL_BASE_FINDER -> "Marks three-wide, two-high solid-walled corridors in loaded chunks near your position.";
+            case RADIO -> "Enter a direct PCM WAV or AIFF stream URL and press F8. The audio plays locally and never becomes a game message.";
+            case DISCORD_PRESENCE -> "Enter a numeric app ID from Discord's developer portal and press F6. This build uses the local Windows Discord IPC pipe; Discord must be running.";
+            case PROXY -> "This module stays unavailable because proxy configuration was requested alongside ban bypass. No proxy or ban-bypass behavior is included.";
             default -> "Configure this module.";
         };
     }
@@ -408,6 +648,7 @@ public final class VantaScreen extends Screen {
             case SUS_CHUNK_FINDER -> config.susChunkFinder;
             case DONUT_CHUNK_FINDER -> config.chunkFinder;
             case RELOG_REMINDER -> config.relogReminder;
+            case PROXY -> false;
             default -> catalogEnabled(module);
         };
     }
@@ -417,6 +658,7 @@ public final class VantaScreen extends Screen {
     }
 
     private void toggleModule(Module module) {
+        if (module == Module.PROXY) return;
         switch (module) {
             case STORAGE_ESP -> config.enabled = !config.enabled;
             case SUSPICIOUS_ESP -> config.suspiciousEsp = !config.suspiciousEsp;
@@ -543,6 +785,80 @@ public final class VantaScreen extends Screen {
                     updateSlider(mx);
                 }
             }
+            case AUTO_LOG -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 205, w, 54)) {
+                    activeSlider = "autoLog";
+                    updateSlider(mx);
+                }
+            }
+            case AUTO_TOTEM, HOVER_TOTEM -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 205, w, 54)) {
+                    activeSlider = "totem";
+                    updateSlider(mx);
+                }
+            }
+            case CHAT_MACRO -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) {
+                    focusedField = "macro";
+                }
+            }
+            case FRIENDS -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) {
+                    focusedField = "friends";
+                }
+            }
+            case AUTO_SELL -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "sell";
+            }
+            case AUTO_SPAWNER_SELL -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "spawnerSell";
+            }
+            case RTP_BASE_FINDER -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "rtp";
+            }
+            case SEED_CHUNK_FINDER -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "seed";
+            }
+            case FAKE_PAY -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "fakePay";
+            }
+            case FAKE_STATS -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "fakeStats";
+            }
+            case RADIO -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 222, w, 29)) focusedField = "radio";
+            }
+            case DISCORD_PRESENCE -> {
+                if (inside(mx, my, x, y + 40, w, 48)) {
+                    config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
+                } else if (inside(mx, my, x, y + 207, w, 29)) focusedField = "discordId";
+                else if (inside(mx, my, x, y + 265, w, 29)) focusedField = "discordStatus";
+            }
+            case PROXY -> {
+                // Intentionally unavailable in this project scope.
+            }
             default -> config.moduleToggles.put(selectedModule.name(), !catalogEnabled(selectedModule));
         }
         config.sanitize();
@@ -560,6 +876,8 @@ public final class VantaScreen extends Screen {
             case "autoEat" -> config.autoEatThreshold = 1 + (int) Math.round(progress * 18);
             case "autoClick" -> config.autoClickCps = 1 + (int) Math.round(progress * 19);
             case "light" -> config.lightThreshold = (int) Math.round(progress * 15);
+            case "autoLog" -> config.autoLogHealth = 1 + (int) Math.round(progress * 19);
+            case "totem" -> config.totemHealthThreshold = 1 + (int) Math.round(progress * 19);
         }
         config.sanitize();
     }
@@ -634,6 +952,17 @@ public final class VantaScreen extends Screen {
             case "alert" -> config.alertMessage;
             case "chunk" -> config.chunkFinderMessage;
             case "relog" -> config.relogMessage;
+            case "macro" -> config.chatMacroMessage;
+            case "friends" -> config.friendNames;
+            case "sell" -> config.autoSellCommand;
+            case "spawnerSell" -> config.autoSpawnerSellCommand;
+            case "rtp" -> config.rtpCommand;
+            case "seed" -> config.seedFinderSeed;
+            case "fakePay" -> config.fakePayPreviewText;
+            case "fakeStats" -> config.fakeStatsText;
+            case "radio" -> config.radioUrl;
+            case "discordId" -> config.discordApplicationId;
+            case "discordStatus" -> config.discordStatus;
             default -> "";
         };
     }
@@ -643,6 +972,17 @@ public final class VantaScreen extends Screen {
             case "alert" -> config.alertMessage = value;
             case "chunk" -> config.chunkFinderMessage = value;
             case "relog" -> config.relogMessage = value;
+            case "macro" -> config.chatMacroMessage = value;
+            case "friends" -> config.friendNames = value;
+            case "sell" -> config.autoSellCommand = value;
+            case "spawnerSell" -> config.autoSpawnerSellCommand = value;
+            case "rtp" -> config.rtpCommand = value;
+            case "seed" -> config.seedFinderSeed = value;
+            case "fakePay" -> config.fakePayPreviewText = value;
+            case "fakeStats" -> config.fakeStatsText = value;
+            case "radio" -> config.radioUrl = value;
+            case "discordId" -> config.discordApplicationId = value;
+            case "discordStatus" -> config.discordStatus = value;
         }
         config.sanitize();
         config.save();

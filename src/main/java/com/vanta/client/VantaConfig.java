@@ -40,6 +40,19 @@ public final class VantaConfig {
     public int autoEatThreshold = 14;
     public int autoClickCps = 8;
     public int lightThreshold = 7;
+    public int autoLogHealth = 6;
+    public int totemHealthThreshold = 12;
+    public String chatMacroMessage = "gg";
+    public String friendNames = "";
+    public String autoSellCommand = "sell hand";
+    public String autoSpawnerSellCommand = "sell spawners";
+    public String rtpCommand = "rtp";
+    public String seedFinderSeed = "";
+    public String fakePayPreviewText = "Payment preview: $100";
+    public String fakeStatsText = "Kills 0  ·  Wins 0  ·  Balance $0";
+    public String radioUrl = "";
+    public String discordApplicationId = "";
+    public String discordStatus = "Vanta Client";
     public Map<String, Boolean> moduleToggles = new LinkedHashMap<>();
 
     public static VantaConfig load() {
@@ -75,6 +88,8 @@ public final class VantaConfig {
         autoEatThreshold = Math.max(1, Math.min(19, autoEatThreshold));
         autoClickCps = Math.max(1, Math.min(20, autoClickCps));
         lightThreshold = Math.max(0, Math.min(15, lightThreshold));
+        autoLogHealth = Math.max(1, Math.min(20, autoLogHealth));
+        totemHealthThreshold = Math.max(1, Math.min(20, totemHealthThreshold));
         if (alertMessage == null || alertMessage.isBlank()) {
             alertMessage = "Storage cluster at chunk {x}, {z}: {count} containers";
         }
@@ -84,6 +99,32 @@ public final class VantaConfig {
         if (relogMessage == null || relogMessage.isBlank()) {
             relogMessage = "Nothing detected at Y -20. Relog once to refresh this chunk, then check again.";
         }
+        if (chatMacroMessage == null || chatMacroMessage.isBlank()) chatMacroMessage = "gg";
+        if (chatMacroMessage.length() > 160) chatMacroMessage = chatMacroMessage.substring(0, 160);
+        if (friendNames == null) friendNames = "";
+        if (friendNames.length() > 160) friendNames = friendNames.substring(0, 160);
+        if (autoSellCommand == null || autoSellCommand.isBlank()) autoSellCommand = "sell hand";
+        if (autoSpawnerSellCommand == null || autoSpawnerSellCommand.isBlank()) autoSpawnerSellCommand = "sell spawners";
+        if (rtpCommand == null || rtpCommand.isBlank()) rtpCommand = "rtp";
+        autoSellCommand = limitCommand(autoSellCommand);
+        autoSpawnerSellCommand = limitCommand(autoSpawnerSellCommand);
+        rtpCommand = limitCommand(rtpCommand);
+        if (seedFinderSeed == null) seedFinderSeed = "";
+        if (seedFinderSeed.length() > 32) seedFinderSeed = seedFinderSeed.substring(0, 32);
+        if (fakePayPreviewText == null || fakePayPreviewText.isBlank()) fakePayPreviewText = "Payment preview: $100";
+        if (fakeStatsText == null || fakeStatsText.isBlank()) fakeStatsText = "Kills 0  ·  Wins 0  ·  Balance $0";
+        if (fakePayPreviewText.length() > 120) fakePayPreviewText = fakePayPreviewText.substring(0, 120);
+        if (fakeStatsText.length() > 120) fakeStatsText = fakeStatsText.substring(0, 120);
+        if (radioUrl == null) radioUrl = "";
+        if (radioUrl.length() > 300) radioUrl = radioUrl.substring(0, 300);
+        if (discordApplicationId == null) discordApplicationId = "";
+        if (discordApplicationId.length() > 25) discordApplicationId = discordApplicationId.substring(0, 25);
+        if (discordStatus == null || discordStatus.isBlank()) discordStatus = "Vanta Client";
+        if (discordStatus.length() > 100) discordStatus = discordStatus.substring(0, 100);
+    }
+
+    private static String limitCommand(String value) {
+        return value.length() > 100 ? value.substring(0, 100) : value;
     }
 }
 

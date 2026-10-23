@@ -8,6 +8,12 @@
   "entrypoints": {
     "client": ["com.vanta.client.VantaClient"]
   },
+  "mixins": [
+    {
+      "config": "vanta_client.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.16.5",
     "minecraft": "~1.21.1",

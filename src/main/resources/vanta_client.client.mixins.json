@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "com.vanta.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "EntityLookMixin",
+    "PlayerEntityMixin",
+    "ChatHudMixin",
+    "PlayerListHudMixin",
+    "PlayerSkinMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+
