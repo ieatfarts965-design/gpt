@@ -1,18 +1,28 @@
-# Storage ESP (Fabric)
+# Silo Client (Fabric)
 
-Client-side mod for Minecraft 1.21.1. The settings panel takes visual cues from the supplied dark, sidebar-based UI reference.
+Silo Client is a client-side Minecraft 1.21.1 Fabric mod with a dark, three-column module menu. The UI takes visual cues from Vape V4's category and module navigation. The module inventory references the public Krypton module catalogue; Silo is an independent project and is not affiliated with either client.
 
-- **Right Shift** opens settings; **O** toggles ESP
-- ESP range is adjustable from 8 to 128 blocks
-- Render style cycles through **OUTLINE** (box outlines), **LINES** (tracers), and **BOTH**
-- The suspect-chunk finder counts chests, trapped chests, ender chests, barrels, and shulker boxes in chunks currently loaded by the client. Set the threshold from 2 to 64 containers per chunk.
-- The scan includes all vertical levels in loaded chunks, including deep underground
-- Alert text supports `{x}`, `{z}`, and `{count}`. Relog reminders can be set for 10, 15, 30, or 60 minutes.
-- Requires Fabric Loader, Fabric API, and Java 21
+- **Right Shift** opens the menu; **O** toggles Storage ESP.
+- **Storage ESP** draws outlines, tracers, or both for selected chests, trapped chests, ender chests, barrels, and shulker boxes. Range is adjustable from 8 to 128 blocks.
+- **Sus Chunk Finder** counts selected storage block entities in loaded chunks through the full vertical range. Set the per-chunk threshold from 2 to 64 and customize the alert with `{x}`, `{z}`, and `{count}`.
+- **Suspicious ESP** uses a warning color for storage in chunks meeting that threshold.
+- **Chunk Finder** notifies when nearby chunks first appear in the client-loaded set. Its message supports `{x}` and `{z}`.
+- **Relog Reminder** sends a configurable reminder every 5 to 120 minutes by chat, actionbar, or both. It reminds the player to reconnect; it does not automate reconnecting.
+- Settings are saved to `config/silo-client.json`.
 
-The client cannot inspect inventories in unopened containers or chunks the server has not sent. The threshold is therefore containers per loaded chunk, not hidden items inside containers. Relogging may refresh which chunks are loaded, but does not reveal chunks outside server view distance.
+## Module catalogue status
 
-Build with Gradle using `gradle build`; copy the jar from `build/libs/` into the Minecraft `mods` folder.
+The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Only the five Silo modules described above currently have game behavior and module-specific settings. Other entries are labelled **Catalogue entry only**; their saved switches do not perform actions. The Krypton inventory is a feature reference, not copied implementation code.
 
-A GitHub Actions workflow is included at .github/workflows/build.yml. It builds on pushes, pull requests, or a manual workflow run and uploads the installable jar as an Actions artifact.
+The scanner only sees block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded for the player. Chunk threshold means storage blocks per chunk, not items inside storage.
+
+## Build
+
+Requires Java 21, Fabric Loader, and Fabric API. Run `gradle build`; the installable jar is written to `build/libs/`. The included GitHub Actions workflow builds the project and uploads a `silo-client-fabric` artifact.
+
+## References
+
+- [Vape Quick Start](https://docs.vape.gg/intro/quick-start) — category navigation and module/settings interaction pattern.
+- [Krypton Client module catalogue](https://kryptonclients.org/) — names and broad category inventory used for reference.
+- [Fabric 1.21.1 notes](https://www.fabricmc.net/2024/05/31/121.html) — version-specific Fabric rendering context.
 
