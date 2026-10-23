@@ -12,11 +12,15 @@ Vanta Client is a client-side Fabric mod for Minecraft 1.21.1. It has a dark pur
 - **Sprint** requests the sprint state while enabled; normal Minecraft movement limits still apply.
 - **HUD** shows Vanta, coordinates, and FPS.
 - **Player ESP** and **Mob ESP** draw boxes for loaded entities in render range.
+- **Auto Eat** consumes the best food in your hotbar at a configurable hunger threshold, then restores your selected slot.
+- **Auto Tool** picks the fastest hotbar tool while you hold attack on a block, then restores your selected slot.
+- **Weather Notifier** reports rain/thunderstorm transitions and clearing weather.
+- **Block Entity Debug** shows the latest loaded-storage and flagged-chunk scan counts in the HUD.
 - Settings are saved to `config/vanta-client.json`.
 
 ## Module catalogue status
 
-The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Ten modules currently have game behavior and module-specific controls. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
+The menu lists the modules present in the referenced Krypton catalogue across Combat, Misc, Donut, Base Finding, Render, and Client. Fourteen modules currently have game behavior and module-specific controls. Other entries are marked **Catalogue entry only**; their saved switches do not perform actions. The catalogue is a feature reference, not copied implementation code.
 
 Vanta sees only block entities in chunks already sent to the client. It cannot inspect unopened container contents or reveal chunks the server has not loaded. The Y -20 prompt counts selected storage block entities in the loaded chunk, not hidden items inside storage. Vanta does not include stealth, anti-cheat evasion, or ban-bypass behavior.
 
