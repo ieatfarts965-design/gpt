@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "storageesp",
+  "id": "silo_client",
   "version": "${version}",
-  "name": "Storage ESP",
-  "description": "Highlights loaded storage blocks and flags chunks with configurable container counts.",
+  "name": "Silo Client",
+  "description": "Fabric client with a Vape-inspired module menu and storage discovery tools.",
   "environment": "client",
   "entrypoints": {
     "client": ["com.example.storageesp.StorageEspClient"]
