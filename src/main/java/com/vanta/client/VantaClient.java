@@ -4,6 +4,7 @@ import com.vanta.client.render.VantaRenderLayer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.block.BarrelBlock;
 import net.minecraft.block.Block;
@@ -17,6 +18,8 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.util.InputUtil;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -47,6 +50,8 @@ public final class VantaClient implements ClientModInitializer {
     private static boolean disconnectedSinceEmptyScan;
     private static boolean recheckAfterRelog;
     private static int worldReadyTicks;
+    private static boolean fullbrightApplied;
+    private static double previousGamma = 1.0;
 
     @Override
     public void onInitializeClient() {
@@ -66,6 +71,8 @@ public final class VantaClient implements ClientModInitializer {
             while (menuKey.wasPressed()) {
                 client.setScreen(new VantaScreen(client.currentScreen, CONFIG));
             }
+
+            applyClientModules(client);
 
             if (client.world == null || client.player == null) {
                 suspectChunks = List.of();
@@ -98,7 +105,8 @@ public final class VantaClient implements ClientModInitializer {
 
         WorldRenderEvents.LAST.register(context -> {
             MinecraftClient client = MinecraftClient.getInstance();
-            if (!CONFIG.enabled || client.world == null || client.player == null
+            if ((!CONFIG.enabled && !moduleEnabled("PLAYER_ESP") && !moduleEnabled("MOB_ESP"))
+                    || client.world == null || client.player == null
                     || context.matrixStack() == null || context.consumers() == null) {
                 return;
             }
@@ -111,31 +119,79 @@ public final class VantaClient implements ClientModInitializer {
             VertexConsumer lines = context.consumers().getBuffer(
                     VantaRenderLayer.LINES);
 
-            for (BlockPos pos : storagePositions) {
-                if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) {
-                    continue;
+            if (moduleEnabled("PLAYER_ESP")) {
+                for (PlayerEntity target : client.world.getPlayers()) {
+                    if (target == client.player || client.player.squaredDistanceTo(target) > rangeSquared) continue;
+                    WorldRenderer.drawBox(matrices, lines, target.getBoundingBox().expand(0.04),
+                            0.95f, 0.48f, 0.82f, 0.95f);
                 }
-
-                float[] color = CONFIG.suspiciousEsp
-                        && SUSPECT_CHUNK_KEYS.contains(chunkKey(pos.getX() >> 4, pos.getZ() >> 4))
-                        ? SUSPICIOUS_COLOR : STORAGE_COLOR;
-
-                if (CONFIG.renderMode != VantaConfig.RenderMode.LINES) {
-                    WorldRenderer.drawBox(matrices, lines, new Box(pos).expand(0.003),
-                            color[0], color[1], color[2], 1.0f);
+            }
+            if (moduleEnabled("MOB_ESP")) {
+                for (MobEntity target : client.world.getEntitiesByClass(MobEntity.class,
+                        client.player.getBoundingBox().expand(CONFIG.range), entity -> true)) {
+                    WorldRenderer.drawBox(matrices, lines, target.getBoundingBox().expand(0.04),
+                            1.0f, 0.68f, 0.24f, 0.9f);
                 }
-                if (CONFIG.renderMode != VantaConfig.RenderMode.OUTLINE) {
-                    Vec3d target = Vec3d.ofCenter(pos);
-                    var matrix = matrices.peek();
-                    lines.vertex(matrix, (float) camera.x, (float) camera.y, (float) camera.z)
-                            .color(color[0], color[1], color[2], 1.0f).normal(matrix, 0.0f, 1.0f, 0.0f);
-                    lines.vertex(matrix, (float) target.x, (float) target.y, (float) target.z)
-                            .color(color[0], color[1], color[2], 1.0f).normal(matrix, 0.0f, 1.0f, 0.0f);
+            }
+
+            if (CONFIG.enabled) {
+                for (BlockPos pos : storagePositions) {
+                    if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) {
+                        continue;
+                    }
+
+                    float[] color = CONFIG.suspiciousEsp
+                            && SUSPECT_CHUNK_KEYS.contains(chunkKey(pos.getX() >> 4, pos.getZ() >> 4))
+                            ? SUSPICIOUS_COLOR : STORAGE_COLOR;
+
+                    if (CONFIG.renderMode != VantaConfig.RenderMode.LINES) {
+                        WorldRenderer.drawBox(matrices, lines, new Box(pos).expand(0.003),
+                                color[0], color[1], color[2], 1.0f);
+                    }
+                    if (CONFIG.renderMode != VantaConfig.RenderMode.OUTLINE) {
+                        Vec3d target = Vec3d.ofCenter(pos);
+                        var matrix = matrices.peek();
+                        lines.vertex(matrix, (float) camera.x, (float) camera.y, (float) camera.z)
+                                .color(color[0], color[1], color[2], 1.0f).normal(matrix, 0.0f, 1.0f, 0.0f);
+                        lines.vertex(matrix, (float) target.x, (float) target.y, (float) target.z)
+                                .color(color[0], color[1], color[2], 1.0f).normal(matrix, 0.0f, 1.0f, 0.0f);
+                    }
                 }
             }
 
             matrices.pop();
         });
+
+        HudRenderCallback.EVENT.register((context, tickCounter) -> {
+            MinecraftClient client = MinecraftClient.getInstance();
+            if (!moduleEnabled("HUD") || client.player == null || client.world == null) return;
+            var pos = client.player.getBlockPos();
+            String info = String.format("VANTA  XYZ %d %d %d  FPS %d",
+                    pos.getX(), pos.getY(), pos.getZ(), client.getCurrentFps());
+            context.drawText(client.textRenderer, Text.literal(info), 8, 8, 0xFFE8E2FF, true);
+        });
+    }
+
+    private static void applyClientModules(MinecraftClient client) {
+        boolean fullbright = moduleEnabled("FULLBRIGHT");
+        if (client.world != null && fullbright) {
+            if (!fullbrightApplied) {
+                previousGamma = client.options.getGamma().getValue();
+                fullbrightApplied = true;
+            }
+            client.options.getGamma().setValue(16.0);
+        } else if (fullbrightApplied) {
+            client.options.getGamma().setValue(previousGamma);
+            fullbrightApplied = false;
+        }
+
+        if (client.player != null && moduleEnabled("SPRINT")) {
+            client.player.setSprinting(true);
+        }
+    }
+
+    private static boolean moduleEnabled(String moduleName) {
+        return CONFIG.moduleToggles.getOrDefault(moduleName, false);
     }
 
     private static void scanLoadedChunks(MinecraftClient client) {
