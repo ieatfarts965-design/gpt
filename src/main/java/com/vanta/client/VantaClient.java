@@ -30,6 +30,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.world.chunk.WorldChunk;
 import org.lwjgl.glfw.GLFW;
@@ -53,6 +54,8 @@ public final class VantaClient implements ClientModInitializer {
     private static List<BlockPos> storagePositions = List.of();
     private static List<BlockPos> spawnerPositions = List.of();
     private static List<BlockPos> debrisPositions = List.of();
+    private static List<BlockPos> holePositions = List.of();
+    private static List<BlockPos> dimPositions = List.of();
     private static KeyBinding toggleKey;
     private static KeyBinding menuKey;
     private static int scanTicks;
@@ -101,6 +104,8 @@ public final class VantaClient implements ClientModInitializer {
                 storagePositions = List.of();
                 spawnerPositions = List.of();
                 debrisPositions = List.of();
+                holePositions = List.of();
+                dimPositions = List.of();
                 ALERTED_CHUNKS.clear();
                 ALERTED_SPAWNERS.clear();
                 PREVIOUS_LOADED_CHUNKS.clear();
@@ -132,7 +137,8 @@ public final class VantaClient implements ClientModInitializer {
             MinecraftClient client = MinecraftClient.getInstance();
             if ((!CONFIG.enabled && !moduleEnabled("PLAYER_ESP") && !moduleEnabled("MOB_ESP")
                     && !moduleEnabled("PLAYER_CHUNKS") && !moduleEnabled("SPAWNER_PROTECT"))
-                    && !moduleEnabled("NETHERITE_FINDER")
+                    && !moduleEnabled("NETHERITE_FINDER") && !moduleEnabled("HOLE_ESP")
+                    && !moduleEnabled("LIGHT_FINDER")
                     || client.world == null || client.player == null
                     || context.matrixStack() == null || context.consumers() == null) {
                 return;
@@ -183,6 +189,21 @@ public final class VantaClient implements ClientModInitializer {
                     if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) continue;
                     WorldRenderer.drawBox(matrices, lines, new Box(pos).expand(0.02),
                             0.35f, 0.95f, 0.68f, 1.0f);
+                }
+            }
+            if (moduleEnabled("HOLE_ESP")) {
+                for (BlockPos pos : holePositions) {
+                    if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) continue;
+                    Box hole = new Box(pos.getX() + 0.08, pos.getY(), pos.getZ() + 0.08,
+                            pos.getX() + 0.92, pos.getY() + 2.0, pos.getZ() + 0.92);
+                    WorldRenderer.drawBox(matrices, lines, hole, 0.32f, 0.9f, 0.82f, 0.9f);
+                }
+            }
+            if (moduleEnabled("LIGHT_FINDER")) {
+                for (BlockPos pos : dimPositions) {
+                    if (client.player.squaredDistanceTo(Vec3d.ofCenter(pos)) > rangeSquared) continue;
+                    WorldRenderer.drawBox(matrices, lines, new Box(pos).expand(0.03),
+                            1.0f, 0.28f, 0.25f, 0.8f);
                 }
             }
 
@@ -520,6 +541,67 @@ public final class VantaClient implements ClientModInitializer {
         spawnerPositions = List.copyOf(currentSpawnerPositions);
         debrisPositions = List.copyOf(currentDebrisPositions);
         ALERTED_SPAWNERS.retainAll(currentSpawnerPositions);
+        holePositions = moduleEnabled("HOLE_ESP") ? findNearbyHoles(client) : List.of();
+        dimPositions = moduleEnabled("LIGHT_FINDER") ? findDimSpots(client) : List.of();
+    }
+
+    private static List<BlockPos> findNearbyHoles(MinecraftClient client) {
+        List<BlockPos> found = new ArrayList<>();
+        BlockPos origin = client.player.getBlockPos();
+        int radius = Math.min(20, CONFIG.range);
+        BlockPos.Mutable cursor = new BlockPos.Mutable();
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                int x = origin.getX() + dx;
+                int z = origin.getZ() + dz;
+                if (client.world.getChunkManager().getWorldChunk(x >> 4, z >> 4) == null) continue;
+                for (int dy = -4; dy <= 4; dy++) {
+                    int y = origin.getY() + dy;
+                    cursor.set(x, y, z);
+                    BlockPos hole = cursor.toImmutable();
+                    if (!client.world.getBlockState(hole).isAir()
+                            || !client.world.getBlockState(hole.up()).isAir()
+                            || !client.world.getBlockState(hole.down()).isSolidBlock(client.world, hole.down())) {
+                        continue;
+                    }
+
+                    boolean enclosed = true;
+                    for (Direction direction : Direction.Type.HORIZONTAL) {
+                        BlockPos side = hole.offset(direction);
+                        if (!client.world.getBlockState(side).isSolidBlock(client.world, side)
+                                || !client.world.getBlockState(side.up()).isSolidBlock(client.world, side.up())) {
+                            enclosed = false;
+                            break;
+                        }
+                    }
+                    if (enclosed) found.add(hole);
+                }
+            }
+        }
+        return List.copyOf(found);
+    }
+
+    private static List<BlockPos> findDimSpots(MinecraftClient client) {
+        List<BlockPos> found = new ArrayList<>();
+        BlockPos origin = client.player.getBlockPos();
+        BlockPos.Mutable cursor = new BlockPos.Mutable();
+        int radius = 12;
+        for (int dx = -radius; dx <= radius && found.size() < 512; dx++) {
+            for (int dz = -radius; dz <= radius && found.size() < 512; dz++) {
+                int x = origin.getX() + dx;
+                int z = origin.getZ() + dz;
+                if (client.world.getChunkManager().getWorldChunk(x >> 4, z >> 4) == null) continue;
+                for (int dy = -2; dy <= 2 && found.size() < 512; dy++) {
+                    cursor.set(x, origin.getY() + dy, z);
+                    BlockPos pos = cursor.toImmutable();
+                    if (client.world.getBlockState(pos).isAir()
+                            && client.world.getLightLevel(pos) <= CONFIG.lightThreshold) {
+                        found.add(pos);
+                    }
+                }
+            }
+        }
+        return List.copyOf(found);
     }
 
     private static void checkEmptyChunkRelogFlow(MinecraftClient client) {
