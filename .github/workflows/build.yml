@@ -32,10 +32,11 @@ jobs:
       - name: Upload mod jar
         uses: actions/upload-artifact@v4
         with:
-          name: silo-client-fabric
+          name: vanta-client-fabric
           path: |
             build/libs/*.jar
             !build/libs/*-sources.jar
           if-no-files-found: error
+
 
 
