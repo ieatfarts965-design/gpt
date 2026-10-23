@@ -19,6 +19,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.chunk.WorldChunk;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
@@ -121,15 +122,22 @@ public final class StorageEspClient implements ClientModInitializer {
     private static void scanLoadedChunks(MinecraftClient client) {
         Map<Long, ChunkCount> counts = new HashMap<>();
         List<BlockPos> currentStoragePositions = new ArrayList<>();
-        for (BlockEntity blockEntity : client.world.getBlockEntities()) {
-            if (!isStorage(blockEntity.getCachedState().getBlock())) continue;
-            BlockPos pos = blockEntity.getPos();
-            currentStoragePositions.add(pos.toImmutable());
-            int chunkX = pos.getX() >> 4;
-            int chunkZ = pos.getZ() >> 4;
-            long key = chunkKey(chunkX, chunkZ);
-            ChunkCount count = counts.computeIfAbsent(key, ignored -> new ChunkCount(chunkX, chunkZ));
-            count.count++;
+        int centerChunkX = client.player.getBlockPos().getX() >> 4;
+        int centerChunkZ = client.player.getBlockPos().getZ() >> 4;
+        int chunkRadius = (CONFIG.range + 15) / 16 + 1;
+        for (int chunkX = centerChunkX - chunkRadius; chunkX <= centerChunkX + chunkRadius; chunkX++) {
+            for (int chunkZ = centerChunkZ - chunkRadius; chunkZ <= centerChunkZ + chunkRadius; chunkZ++) {
+                WorldChunk chunk = client.world.getChunkManager().getWorldChunk(chunkX, chunkZ);
+                if (chunk == null) continue;
+                for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+                    if (!isStorage(blockEntity.getCachedState().getBlock())) continue;
+                    BlockPos pos = blockEntity.getPos();
+                    currentStoragePositions.add(pos.toImmutable());
+                    long key = chunkKey(chunkX, chunkZ);
+                    ChunkCount count = counts.computeIfAbsent(key, ignored -> new ChunkCount(chunkX, chunkZ));
+                    count.count++;
+                }
+            }
         }
 
         List<SuspectChunk> current = new ArrayList<>();
@@ -180,4 +188,3 @@ public final class StorageEspClient implements ClientModInitializer {
     public record SuspectChunk(int x, int z, int count) {
     }
 }
-
