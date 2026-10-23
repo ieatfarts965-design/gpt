@@ -81,6 +81,7 @@ public final class VantaClient implements ClientModInitializer {
     private static List<TunnelMarker> tunnelPositions = List.of();
     private static List<BlockPos> seedChunkPositions = List.of();
     private static List<BlockPos> crystalPositions = List.of();
+    private static List<JukeboxMarker> jukeboxMarkers = List.of();
     private static final List<JumpRing> jumpRings = new ArrayList<>();
     private static KeyBinding toggleKey;
     private static KeyBinding menuKey;
@@ -322,6 +323,7 @@ public final class VantaClient implements ClientModInitializer {
                 tunnelPositions = List.of();
                 seedChunkPositions = List.of();
                 crystalPositions = List.of();
+                jukeboxMarkers = List.of();
                 rtpScanActive = false;
                 rtpScanTicksRemaining = 0;
                 jumpRings.clear();
@@ -571,10 +573,9 @@ public final class VantaClient implements ClientModInitializer {
             }
             if (moduleEnabled("MUSIC_HUD")) {
                 int row = 0;
-                for (BlockEntity blockEntity : client.world.getBlockEntities().values()) {
-                    if (blockEntity instanceof JukeboxBlockEntity jukebox && !jukebox.getStack().isEmpty()
-                            && client.player.squaredDistanceTo(Vec3d.ofCenter(jukebox.getPos())) <= 4096.0) {
-                        String playing = "Now playing: " + jukebox.getStack().getName().getString();
+                for (JukeboxMarker jukebox : jukeboxMarkers) {
+                    if (client.player.squaredDistanceTo(Vec3d.ofCenter(jukebox.pos())) <= 4096.0) {
+                        String playing = "Now playing: " + jukebox.name();
                         context.drawText(client.textRenderer, Text.literal(playing), 8, 36 + row * 12,
                                 0xFFE6D5FF, true);
                         if (++row >= 3) break;
@@ -949,7 +950,7 @@ public final class VantaClient implements ClientModInitializer {
     }
 
     private static void drawPearlTrajectory(MinecraftClient client, VertexConsumer lines,
-                                             org.joml.Matrix4f matrix) {
+                                             net.minecraft.client.util.math.MatrixStack.Entry matrix) {
         if (client.player == null || client.world == null
                 || (!client.player.getMainHandStack().isOf(Items.ENDER_PEARL)
                 && !client.player.getOffHandStack().isOf(Items.ENDER_PEARL))) return;
@@ -1339,6 +1340,7 @@ public final class VantaClient implements ClientModInitializer {
         List<BlockPos> currentStoragePositions = new ArrayList<>();
         List<BlockPos> currentSpawnerPositions = new ArrayList<>();
         List<BlockPos> currentDebrisPositions = new ArrayList<>();
+        List<JukeboxMarker> currentJukeboxMarkers = new ArrayList<>();
         Set<Long> loadedNow = new HashSet<>();
         int centerChunkX = client.player.getBlockPos().getX() >> 4;
         int centerChunkZ = client.player.getBlockPos().getZ() >> 4;
@@ -1370,6 +1372,11 @@ public final class VantaClient implements ClientModInitializer {
                     }
                 }
                 for (BlockEntity blockEntity : chunk.getBlockEntities().values()) {
+                    if (moduleEnabled("MUSIC_HUD") && blockEntity instanceof JukeboxBlockEntity jukebox
+                            && !jukebox.getStack().isEmpty()) {
+                        currentJukeboxMarkers.add(new JukeboxMarker(jukebox.getPos().toImmutable(),
+                                jukebox.getStack().getName().getString()));
+                    }
                     if (blockEntity instanceof MobSpawnerBlockEntity) {
                         BlockPos spawner = blockEntity.getPos().toImmutable();
                         currentSpawnerPositions.add(spawner);
@@ -1429,6 +1436,7 @@ public final class VantaClient implements ClientModInitializer {
         storagePositions = List.copyOf(currentStoragePositions);
         spawnerPositions = List.copyOf(currentSpawnerPositions);
         debrisPositions = List.copyOf(currentDebrisPositions);
+        jukeboxMarkers = List.copyOf(currentJukeboxMarkers);
         ALERTED_SPAWNERS.retainAll(currentSpawnerPositions);
         holePositions = moduleEnabled("HOLE_ESP") ? findNearbyHoles(client) : List.of();
         dimPositions = moduleEnabled("LIGHT_FINDER") ? findDimSpots(client) : List.of();
@@ -1701,6 +1709,9 @@ public final class VantaClient implements ClientModInitializer {
     }
 
     private record TunnelMarker(BlockPos pos, Direction direction) {
+    }
+
+    private record JukeboxMarker(BlockPos pos, String name) {
     }
 
     private record JumpRing(double x, double y, double z, int age) {
